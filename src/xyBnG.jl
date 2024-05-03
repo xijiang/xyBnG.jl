@@ -1,5 +1,7 @@
 module xyBnG
 
-# Write your package code here.
+include("types.jl")
+include("utils.jl")
+include("xy.jl")
 
 end

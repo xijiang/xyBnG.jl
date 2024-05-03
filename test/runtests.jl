@@ -1,6 +1,7 @@
 using xyBnG
 using Test
 
-@testset "xyBnG.jl" begin
-    # Write your tests here.
-end
+import CompatHelperLocal as CHL
+CHL.@check()
+
+include("tst-xy.jl")
