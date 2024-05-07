@@ -55,4 +55,34 @@ function Trait(name, h2, nQTL; da = Normal(), vd = 0., dd = Normal())
     Trait(name, h2, nQTL, da, vd, dd)
 end
 
+abstract type Species end
+
+struct Cattle <: Species
+    name::AbstractString
+    nid::Int
+    function Cattle(name::AbstractString, nid::Int)
+        nid ≤ 0 && error("nid must be positive")
+        new(name, nid)
+    end
+end
+
+function Cattle(nid::Int)
+    Cattle("BosTau", nid)
+end
+
+struct Pig <: Species
+    name::AbstractString
+    nid::Int
+    function Pig(name::AbstractString, nid::Int)
+        nid ≤ 0 && error("nid must be positive")
+        new(name, nid)
+    end
+end
+
+function Pig(nid::Int)
+    Pig("SusScr", nid)
+end
+
+# ToDo: Add a generic species
+
 end # module xyTypes

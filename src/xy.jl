@@ -73,15 +73,12 @@ mutable struct header
     r::Int8
     u::Int8      # r and u are reserved
     function header(;
-        x     = 'x',
-        y     = 'y',
-        v     = ' ',
         flus  = 'F',  # full, lower triangle, upper triangle, symmetric
         major = 0,
         type  = 1,
-        r     = 0,
-        u     = 0)
-        new(x, y, v, flus, major, type, r, u)
+        )
+        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype && error("Invalid header")
+        new('x', 'y', ' ', flus, major, type, 0, 0)
     end
 end
 
@@ -113,7 +110,7 @@ function init!(xy::AbstractString, hdr::header, nrows::Int64, ncols::Int64)
     end
 
     if Sys.islinux() || Sys.isbsd() || Sys.isapple() || Sys.isfreebsd() || Sys.isnetbsd() || Sys.isopenbsd() || Sys.isunix()
-        run(`dd if=/dev/zero of=$xy bs=$block count=1`)
+        run(pipeline(`head -c $block /dev/zero`, xy))
     elseif Sys.iswindows()
         run(`fsutil file createnew $xy $block`)
     else
