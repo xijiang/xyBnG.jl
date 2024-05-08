@@ -100,6 +100,7 @@ function sample_founder(bdir::AbstractString, tdir::AbstractString,
     ped = DataFrame(id = Int32.(1:nid),
                     sire = Int32(0),
                     dam = Int32(0),
+                    sex = rand(Int8.(0:1), nid),
                     )
     snps = mmap("$tdir/$name.xy", Matrix{Int8}, (nrow(lmp), 2nid), 24)
     for t in trts
@@ -114,7 +115,7 @@ function sample_founder(bdir::AbstractString, tdir::AbstractString,
         lmp[!, "$(t.name)_a"][qtl] .= a
         lmp[!, "$(t.name)_d"][qtl] .= d
         ped[!, "tbv_$(t.name)"] = Q'a
-        ped[!, "ebv_$(t.name)"] .= 0.
+        ped[!, "ebv_$(t.name)"] .= -1e8
         ped[!, "gt_$(t.name)"] = ped[!, "tbv_$(t.name)"] + D'd
     end
     serialize("$tdir/$name.ped", ped)
