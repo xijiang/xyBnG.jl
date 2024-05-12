@@ -1,15 +1,15 @@
 """
-    function predict!(ID::AbstractVector{Int}, ped::DataFrame, trts::Trait...)
+    predict!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T <: Integer
 
 Give random EBV of trait `trts` about ID specified with `ID` in DataFrame `ped`.
 The rest of the values, and the sex not specific values are set as missing.
 """
-function predict!(ID::AbstractVector{Int}, ped::DataFrame, trts::Trait...)
+function predict!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T <: Integer
     1 ≤ minimum(ID) ≤ maximum(ID) ≤ nrow(ped) || throw(ArgumentError("ID out of range"))
     for trt in trts
         ebv = "ebv_" * trt.name
         hasproperty(ped, ebv) || (ped[!, ebv] .= missing)
-        rand!(view(ped, ID, ebv))
+        copyto!(view(ped, ID, ebv), rand(length(ID)))
     end
     ped
 end

@@ -26,6 +26,7 @@ export Trait
         da::ContinuousUnivariateDistribution  # e.g., Normal()
         vd::Float64
         dd::ContinuousUnivariateDistribution
+        rev::Bool    # default true, higher the better
     end
 
 Note: The total additive genetic variance is normalized to mean 0, and variance
@@ -41,7 +42,8 @@ struct Trait
     da::ContinuousUnivariateDistribution
     vd::Float64
     dd::ContinuousUnivariateDistribution
-    function Trait(name, type, sex, age, h2, nQTL, da, vd, dd)
+    rev::Bool    # default true, higher the better
+    function Trait(name, type, sex, age, h2, nQTL, da, vd, dd, rev)
         isempty(setdiff(name, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_")) ||
             error("Only alphabet and underscore are allowed in a name")
         type ∈ [Int, Float64] || error("Type must be Int or Float64")
@@ -51,7 +53,7 @@ struct Trait
         0 < nQTL || error("nQTL must be in (0, ∞)")
         ul = 1. / h2 - 1.
         0. ≤ vd < ul || error("Var dominance must be in [0., (1 - h²) / h² = $ul)")
-        new(name, type, sex, age, h2, nQTL, da, vd, dd)
+        new(name, type, sex, age, h2, nQTL, da, vd, dd, rev)
     end
 end
 
@@ -62,8 +64,17 @@ end
     end
 """
 function Trait(name, h2, nQTL; type = Float64, sex = 2, age = 1.,
-         da = Normal(), vd = 0., dd = Normal())
-    Trait(name, type, sex, age, h2, nQTL, da, vd, dd)
+         da = Normal(), vd = 0., dd = Normal(), rev = true)
+    Trait(name, type, sex, age, h2, nQTL, da, vd, dd, rev)
+end
+
+"""
+    function name(trt::Trait)
+
+Return the name of the trait.
+"""
+function name(trt::Trait)
+    trt.name
 end
 
 abstract type Species end
@@ -92,6 +103,21 @@ end
 
 function Pig(nid::Int)
     Pig("SusScr", nid)
+end
+
+mutable struct Plan
+    npa::Int
+    nma::Int
+    noff::Int
+    mate::Symbol
+    function Plan(npa::Int, nma::Int, noff::Int; mate = :hierarchical)
+        npa > 0 || error("npa must be positive")
+        nma > 0 || error("nma must be positive")
+        noff > 0 || error("noff must be positive")
+        mate ∈ [:random, :hierarchical, :factorial] || 
+            error("mate must be in [:random, :hierarchical, :factorial]")
+        new(npa, nma, noff, mate)
+    end
 end
 
 # ToDo: Add a generic species

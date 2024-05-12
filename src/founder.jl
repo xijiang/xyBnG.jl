@@ -101,6 +101,7 @@ function sample_founder(bdir::AbstractString, tdir::AbstractString,
                     sire = Int32(0),
                     dam = Int32(0),
                     sex = rand(Int8.(0:1), nid),
+                    grt = Int16(1),
                     )
     snps = mmap("$tdir/$name.xy", Matrix{Int8}, (nrow(lmp), 2nid), 24)
     for t in trts

@@ -14,7 +14,7 @@ using Mmap
 using Random
 using Serialization
 using xyBnG.XY
-using xyBnG.xyTypes
+using xyBnG.xyTypes: Trait, Cattle, Species, Plan, name
 
 include("brd/utils.jl")
 include("brd/phenotype.jl")
