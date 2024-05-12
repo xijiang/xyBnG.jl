@@ -1,20 +1,24 @@
 name = "xyBnG"
 uuid = "056de5cc-3822-4b22-85ae-bc65d3fbfd0e"
 authors = ["Xijiang Yu <xijiang@users.noreply.github.com> and contributors"]
-version = "1.0.0-DEV"
+version = "1.0.0-1"
 
 [deps]
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Mmap = "a63ad114-7e13-5084-954f-fe012c677804"
+PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 CompatHelperLocal = "0.1.26"
 DataFrames = "1.6.1"
 Distributions = "0.25.108"
+PyCall = "1.96.4"
 julia = "1.10"
 
 [extras]

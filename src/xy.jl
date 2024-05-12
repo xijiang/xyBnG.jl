@@ -8,7 +8,7 @@ Functions around `xy` file format.
 - `function init!(xy::AbstractString, hdr::header, nrows::Int64, ncols::Int64)`
 - `function header(xy::AbstractString)`
 - `function dim(xy::AbstractString)`
-- `function _dim!(xy::AbstractString, nrows::Int64, ncols::Int64)`
+- `function dim!(xy::AbstractString, nrows::Int64, ncols::Int64)`
 - `function sub(ixy::AbstractString, rows::T, cols::T, oxy::AbstractString) where T <: AbstractVector{Int64}`
 - `function sub(ixy::AbstractString, rows::T, oxy::AbstractString) where T <: AbstractVector{Int64}`
 - `function mat(m::AbstractMatrix, oxy::AbstractString; flus = 'F')`
@@ -70,18 +70,17 @@ mutable struct header
     flus::Int8   # FLUS matrix type: full, lower triangle, upper triangle, symmetric
     major::Int8  # 0 for loci majored, 1 for ID majored, or else
     type::Int8   # element type of the matrix, determined by function _type
-    r::Int8
-    u::Int8      # r and u are reserved
+    r::Int8      # r is reserved
+    u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding
     function header(;
-        x     = 'x',
-        y     = 'y',
-        v     = ' ',
         flus  = 'F',  # full, lower triangle, upper triangle, symmetric
         major = 0,
         type  = 1,
-        r     = 0,
-        u     = 0)
-        new(x, y, v, flus, major, type, r, u)
+        u     = 0,
+        )
+        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype || u ∉ 0:2 && 
+            error("Invalid header")
+        new('x', 'y', ' ', flus, major, type, 0, u)
     end
 end
 
@@ -113,7 +112,7 @@ function init!(xy::AbstractString, hdr::header, nrows::Int64, ncols::Int64)
     end
 
     if Sys.islinux() || Sys.isbsd() || Sys.isapple() || Sys.isfreebsd() || Sys.isnetbsd() || Sys.isopenbsd() || Sys.isunix()
-        run(`dd if=/dev/zero of=$xy bs=$block count=1`)
+        run(pipeline(`head -c $block /dev/zero`, xy))
     elseif Sys.iswindows()
         run(`fsutil file createnew $xy $block`)
     else
@@ -149,6 +148,12 @@ function header(xy::AbstractString)
     hdr
 end
 
+function header!(xy::AbstractString, hdr::header)
+    open(xy, "r+") do io
+        write(io, Ref(hdr))
+    end
+end
+
 """
     dim(xy::AbstractString)
 
@@ -161,11 +166,11 @@ function dim(xy::AbstractString)
 end
 
 """
-    _dim!(xy::AbstractString, nrows::Int64, ncols::Int64)
+    dim!(xy::AbstractString, nrows::Int64, ncols::Int64)
 
 Write dimensions `nrows` and `ncols` to file `xy`.
 """
-function _dim!(xy::AbstractString, nrows::Int64, ncols::Int64)
+function dim!(xy::AbstractString, nrows::Int64, ncols::Int64)
     open(xy, "r+") do io
         seek(io, 8)
         write(io, [nrows, ncols])
@@ -338,7 +343,7 @@ function append!(ixy::T, oxy::T) where T <: AbstractString
     hi.flus == Int8('F') || error("Needs to be a full matrix")
     (mi, ni), (mo, no) = dim(ixy), dim(oxy)
     mi == mo || error("Number of rows of $ixy and $oxy are different")
-    _dim!(ixy, mi, ni + no)
+    dim!(ixy, mi, ni + no)
     open(ixy, "a") do io
         write(io, Mmap.mmap(oxy, Matrix{_type(hi.type)}, (mo, no), 24))
     end
@@ -359,7 +364,7 @@ function append!(fxy::AbstractString, gt::Matrix)
     open(fxy, "a") do io
         write(io, gt)
     end
-    _dim!(fxy, x, y + size(gt, 2))
+    dim!(fxy, x, y + size(gt, 2))
 end
 
 """
