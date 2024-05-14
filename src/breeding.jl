@@ -13,6 +13,7 @@ using Distributions
 using Mmap
 using Random
 using Serialization
+using SparseArrays
 using xyBnG.XY
 using xyBnG.xyTypes: Trait, Cattle, Species, Plan, name
 

@@ -125,3 +125,67 @@ function drop(pg::AbstractArray, og::AbstractArray, pm, lms)
         gamete(ma, zi, lms)
     end
 end
+
+"""
+    incidence_matrix(df::DataFrame)
+Create an incidence matrix from all columns of a data frame provided.
+The first level of each factor is ignored. Instead, a intercept is added.
+This is to make the matrix full rank.
+"""
+function incidence_matrix(df::DataFrame)
+    n = size(df, 1)
+    u = [sort(unique(df[:, i]))[2:end] for i in eachindex(names(df))] # can also be 1:end-1, which has more codes than 2:end
+    m = sum([length(u[i]) for i in eachindex(u)])
+    x, a = [ones(n) zeros(n, m)], 2
+    for i in eachindex(u)
+        for j in eachindex(u[i])
+            x[df[:, i] .== u[i][j], a] .= 1
+            a += 1
+        end
+    end
+    sparse(x)
+end
+
+"""
+    function Zmat(nm)
+Given a vector of `Bool`sel indicating if a phenotype is not missing, return a
+`Z` sparse matrix of `m` phenotypes and `n` ID, for an animal model.
+"""
+function Zmat(nm)
+    n, m = length(nm), sum(nm)
+    z = sparse(zeros(m, n))
+    a = 1
+    for i in 1:n
+        if nm[i]
+            z[a, i] = 1
+            a += 1
+        end
+    end
+    z
+end
+
+"""
+    function animalModel(ft::, giv, h², F)
+
+Calculate the BLUP of a trait with phenotypes `ft`, inverse of relationship
+matrix `giv`, heritability `h²`, and fixed effect matrix `F`. This function
+returns the fixed effect and the random effect separately in a tuple.
+"""
+function animalModel(ft, giv, h², F)
+    λ = (1.0 - h²) / h²
+    p = .!ismissing.(ft)
+    Z = Zmat(p)
+    X = F[p, :]
+    Y = collect(skipmissing(ft))
+    lhs = if issparse(giv)
+        [X'X X'Z
+         Z'X Z'Z + λ * giv]
+    else
+        Matrix([X'X X'Z
+                Z'X Z'Z + λ * giv])
+    end
+    rhs = vec([X'Y; Z'Y])
+    nf = size(X, 2)
+    sol = (lhs \ rhs)
+    sol[1:nf], sol[nf + 1 : end]
+end

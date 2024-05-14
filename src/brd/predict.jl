@@ -14,6 +14,27 @@ function predict!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T
     ped
 end
 
+"""
+    predict!(ID::AbstractVector{T}, ped::DataFrame,
+        fixed::Vector{AbstractString}, giv::Matrix{Float64},
+        trts::Trait...) where T <: Integer
+
+Predict the trait(s) `trts` EBV of `ID` in DataFrame `ped` with the fixed
+effects `fixed`, which is/are also column(s) in `ped`, the inverse relationship
+matrix `giv`.
+"""
+function predict!(ID::AbstractVector{T}, ped::DataFrame,
+    fixed::Vector{S}, giv::Matrix{Float64},
+    trts::Trait...) where {T <: Integer, S <: AbstractString}
+    1 ≤ minimum(ID) ≤ maximum(ID) ≤ nrow(ped) || throw(ArgumentError("ID out of range"))
+    X = incidence_matrix(select(ped, fixed))
+    for trt in trts
+        ebv, ft = "ebv_" * trt.name, "ft_" * trt.name
+        _, sol = animalModel(ped[!, ft], giv, trt.h2, X)
+        copyto!(view(ped, ID, ebv), sol[ID])
+    end
+end
+
 #=
 """
     predict!(ped::DataFrame, trts::Trait...; all = false)

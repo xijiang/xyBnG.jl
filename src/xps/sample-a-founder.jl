@@ -11,4 +11,7 @@ function sample_a_founder()
     nid, nchp, nref = 200, 50_000, 10_000
     baseDir, fdrDir = "rst/base", "rst/cattle"
     sample_founder(baseDir, fdrDir, nid, nchp, nref, milk, growth)
+    for ext in ["ped", "lmp", "xy"]
+        cp("$fdrDir/cattle.$ext", "$fdrDir/founder.$ext")
+    end
 end
