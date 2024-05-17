@@ -10,10 +10,12 @@ module Breeding
 
 using DataFrames
 using Distributions
+using LinearAlgebra
 using Mmap
 using Random
 using Serialization
 using SparseArrays
+import StatsBase: sample, Weights
 using xyBnG.XY
 using xyBnG.xyTypes: Trait, Cattle, Species, Plan, name
 

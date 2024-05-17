@@ -22,7 +22,7 @@ function mate(pas::AbstractVector{T}, mas::AbstractVector{T}, plan::Plan) where 
         end
     end
     pm = sortslices([sire dam], dims=1, by=x -> (x[1], x[2]))
-    df = DataFrame(
+    DataFrame(
         id = 1:plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
@@ -46,7 +46,7 @@ function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) w
     pas = gps[2].id[1:plan.npa]
     ng  = mate(pas, mas, plan)
     ng.id .+= nrow(ped)
-    ng.grt .+= ped.grt[end]
+    ng.grt .+= maximum(ped.grt[ID])
     ng
 end
 
@@ -71,6 +71,42 @@ function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; re
     ng.id .+= nrow(ped)
     ng.grt .+= ped.grt[end]
     ng
+end
+
+function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, c::AbstractVector{Float64}) where T <: Integer
+    @info "Select `ID` according to their contribution `c`"
+    pm = begin
+        df = DataFrame(id = ID, sex = ped.sex[ID], c = c,
+                        n = Int.(round.(c * plan.noff)))
+        df = view(df, df.c .> 0, :)
+        groupby(df, :sex)
+    end
+    if plan.mate == :random
+        pa = sample(pm[2].id, Weights(pm[2].c), plan.noff)
+        ma = sample(pm[1].id, Weights(pm[1].c), plan.noff)
+    else
+        pa, ma = Int[], Int[]
+        # Note that the number of offspring may not be exactly `noff`
+        for (id, _, _, n) in eachrow(pm[2])
+            append!(pa, fill(id, n))
+        end
+        for (id, _, _, n) in eachrow(shuffle(pm[1]))
+            append!(ma, fill(id, n))
+        end
+        pa = sort(pa[1:plan.noff])
+        ma = ma[1:plan.noff] # already for hierarchical
+        if plan.mate == :factorial
+            ma = shuffle(ma)
+        end
+    end
+    nid = nrow(ped)
+    DataFrame(
+        id = nid + 1:nid + plan.noff,
+        sire = pa,
+        dam = ma,
+        sex = rand(Int8.(0:1), plan.noff),
+        grt = maximum(ped.grt[ID]) + 1,
+    )
 end
 
 #=
