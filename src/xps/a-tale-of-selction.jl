@@ -56,10 +56,11 @@ function a_tale_of_selection()
     This may take a while.
     """
     tprintln(act, "\n")
-    isfile("$tstDir/founder.xy") || sample_founder(baseDir, tstDir, nid, nchp, nref, milk, growth)
-    for ext in ["ped", "lmp", "xy"]
+    isfile("$tstDir/cattle.xy") || sample_founder(baseDir, tstDir, nid, nchp, nref, milk, growth)
+    for ext in ["ped", "lmp"]
         cp("$tstDir/cattle.$ext", "$tstDir/founder.$ext", force=true)
     end
+    uniq("$tstDir/cattle.xy", "$tstDir/founder.xy")
     desc = md"""
     A total of $nid ID, or, $(2nid) haplotypes are sampled from the base population.
     These ID have $nchp chip SNPs, $nref reference/hidden SNPs, $(milk.nQTL) QTL

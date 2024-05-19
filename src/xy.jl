@@ -71,14 +71,14 @@ mutable struct header
     major::Int8  # 0 for loci majored, 1 for ID majored, or else
     type::Int8   # element type of the matrix, determined by function _type
     r::Int8      # r is reserved
-    u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding
+    u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding, 3+ else
     function header(;
         flus  = 'F',  # full, lower triangle, upper triangle, symmetric
         major = 0,
         type  = 1,
         u     = 0,
         )
-        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype || u ∉ 0:2 && 
+        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype || u < 0 && 
             error("Invalid header")
         new('x', 'y', ' ', flus, major, type, 0, u)
     end

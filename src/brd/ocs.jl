@@ -328,5 +328,4 @@ function DOSop(uhat, A, A12, s, Ktilde, Nx, sex)
         (c, n) = DOSc(x2, uhat, A, A12, s, Ktilde, Nx, sex)
         return vec(c)
     end
-
 end

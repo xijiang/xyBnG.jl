@@ -66,8 +66,8 @@ end
 Make SNP of a (founder) population unique.
 """
 function uniq(ixy::T, oxy::T) where T <: AbstractString
-    XY.issnp(ixy) || error("Not a SNP file already: $ixy")
     hdr, (nlc, nhp) = XY.header(ixy), XY.dim(ixy)
+    hdr.u == 0 || error("Not a SNP file")
     type = XY._type(hdr.type)
     if nhp > typemax(Int32) - 2
         error("Too many ID in the file")
@@ -76,13 +76,17 @@ function uniq(ixy::T, oxy::T) where T <: AbstractString
     else nhp > typemax(Int8) - 2
         type = Int16
     end
-    hdr.type = XY._type(type)
-    gt = zeros(type, nlc, nhp)
-    for i in 2:nhp
-        gt[:, i] .= (i - 1) * 2
+    hdr.type, hdr.u = XY._type(type), 1
+    gt = Mmap.mmap(ixy, Matrix{Int8}, (nlc, nhp), 24)
+    v = zeros(type, nlc) # for type safety
+    open(oxy, "w") do io
+        write(io, Ref(hdr), [nlc, nhp])
+        for i in 1:nhp
+            copyto!(v, gt[:, i])
+            v .+= 2(i - 1)
+            write(io, v)
+        end
     end
-    gt += Mmap.mmap(ixy, Matrix{Int8}, (nlc, nhp), 24)
-    write(oxy, Ref(hdr), [nlc, nhp], gt)
 end
 
 function sample_founder(bdir::AbstractString, tdir::AbstractString,

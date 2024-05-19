@@ -16,12 +16,11 @@ using Term
 using xyBnG.XY
 import xyBnG.xyTypes: Cattle, Species, Trait, Plan, name
 import xyBnG.Breeding: phenotype!, predict!, Select, reproduce!, TM1997
-import xyBnG.Founder: sim_base, sample_founder
+import xyBnG.Founder: sim_base, sample_founder, uniq
 import xyBnG.Conn.TS: sample2xy
-import xyBnG.RS: nrm
+import xyBnG.RS: nrm, irm
 
-include("xps/directional-select-milk.jl")
-include("xps/ocs-sel-milk.jl")
 include("xps/a-tale-of-selction.jl")
+include("xps/devel.jl")
 
 end # module xps
