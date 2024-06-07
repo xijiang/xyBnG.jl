@@ -3,7 +3,7 @@ function reproduce!(ng::DataFrame,
                     xy::AbstractString,
                     lmp::DataFrame,
                     trts::Trait...)
-    @info "Reproduce the $(nrow(ng)) offspring"
+    @debug "Reproduce the $(nrow(ng)) offspring"
     lms = sumMap(lmp)
     hdr, (nlc, nhp) = XY.header(xy), XY.dim(xy)
     etp = XY._type(hdr.type)

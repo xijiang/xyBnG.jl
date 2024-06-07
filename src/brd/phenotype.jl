@@ -34,7 +34,7 @@ end
 As method phenotype! 01, but only phenotype the ID in `ID`.
 """
 function phenotype!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T <: Integer
-    @info "Generate phenotypes of trait $(join(name.(trts), ", "))"
+    @debug "Generate phenotypes of trait $(join(name.(trts), ", "))"
     for trt in trts
         if trt.type == Int 
             @info "Non continuous trait not implemented"

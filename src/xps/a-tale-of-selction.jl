@@ -87,7 +87,7 @@ function a_tale_of_selection()
         @info lpad("<--- Generation $igrt / $nrng --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)
-        predict!(ids, ped, milk, growth)
+        Predict!(ids, ped, milk, growth)
         ng = Select(ids, plan, ped, milk)
         reproduce!(ng, ped, xy, lmp, milk, growth)
     end
@@ -110,7 +110,7 @@ function a_tale_of_selection()
         @info lpad("<--- Generation $igrt / $nrng --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)
-        predict!(ids, ped, milk, growth)
+        Predict!(ids, ped, milk, growth)
         ng = Select(ids, plan, ped, wgt)
         reproduce!(ng, ped, xy, lmp, milk, growth)
     end
@@ -137,7 +137,7 @@ function a_tale_of_selection()
         phenotype!(ids, ped, milk, growth)
         G = nrm(ped)
         giv = inv(G)
-        predict!(ids, ped, fixed, giv, milk)
+        Predict!(ids, ped, fixed, giv, milk)
         ng = Select(ids, plan, ped, milk)
         reproduce!(ng, ped, xy, lmp, milk, growth)
     end
@@ -167,7 +167,7 @@ function a_tale_of_selection()
             R = G[ids, ids]
             inv(G), R
         end
-        predict!(ids, ped, fixed, giv, milk)
+        Predict!(ids, ped, fixed, giv, milk)
         tgt = select(ped, "ebv_milk" => "idx", "sex")[ids, :]
         K = 0.09
         c = TM1997(tgt, R, K)

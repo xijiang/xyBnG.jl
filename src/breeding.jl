@@ -25,5 +25,6 @@ include("brd/predict.jl")
 include("brd/select.jl")
 include("brd/reproduce.jl")
 include("brd/ocs.jl")
+include("brd/xecodes.jl")
 
 end # module Breeding

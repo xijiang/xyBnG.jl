@@ -38,7 +38,7 @@ Selection `ID` on their EBV of trait `trt` in DataFrame `ped` according to plan
 `plan`.
 """
 function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
-    @info "Selection on $(trt.name)"
+    @debug "Selection on $(trt.name)"
     df = select(view(ped, ID, :), :id, :sex, r"ebv_")
     sort!(df, "ebv_" * trt.name, rev = trt.rev)
     gps = groupby(df, :sex)
@@ -56,7 +56,7 @@ end
 Selection `ID` on their weighted EBV of traits in dictionary `dic`.
 """
 function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; rev = true) where T <: Integer
-    @info "Selection on $(join(keys(dic), ", "))"
+    @debug "Selection on $(join(keys(dic), ", "))"
     df = select(view(ped, ID, :), :id, :sex, r"ebv_")
     index = zeros(nrow(df))
     for trt in keys(dic)
@@ -74,7 +74,7 @@ function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; re
 end
 
 function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, c::AbstractVector{Float64}) where T <: Integer
-    @info "Select `ID` according to their contribution `c`"
+    @debug "Select `ID` according to their contribution `c`"
     pm = begin
         df = DataFrame(id = ID, sex = ped.sex[ID], c = c,
                         n = Int.(round.(c * plan.noff)))
@@ -172,11 +172,11 @@ end
 # under construction
 function Select!(ped::DataFrame, ppo::Tuple{Int, Int, Int},
     trt::Trait, on::Union{AbstractString, Symbol}; mate = :random)
-    @info "Selection on $on of $(trt.name)"
+    @debug "Selection on $on of $(trt.name)"
 end
 
 function Select!(ped::DataFrame, ppo::Tuple{Int, Int, Int},
     c::AbstractVector{Float64}; mate = :random)
-    @info "Selection last generation of `ped` with contribution $c"
+    @debug "Selection last generation of `ped` with contribution $c"
 end
 =#
