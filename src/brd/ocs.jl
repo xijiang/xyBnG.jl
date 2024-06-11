@@ -50,5 +50,21 @@ function TM1997(ped, A, K)
     end
 end
 
-function TM2024()
+"""
+    TM2024(ped, A, K)
+This is a wrapper for Theo's program with equal contribution.
+"""
+function TM2024(ped, A, K)
+    ncd = size(A, 1) # number of candidates
+    nsire = sum(ped.sex)
+    ndam  = ncd - nsire
+    DOSop(ped.idx, A, zeros(ncd), 1., K, [nsire, ndam], ped.sex .+ 1)
+end
+
+function konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
+    if ong
+        2dF
+    else
+        2(1 - (1 - k₀) * (1 - dF) ^ (igrt + 1))
+    end
 end

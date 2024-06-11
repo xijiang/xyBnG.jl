@@ -15,10 +15,10 @@ using Serialization
 using Term
 using xyBnG.XY
 import xyBnG.xyTypes: Cattle, Species, Trait, Plan, name
-import xyBnG.Breeding: phenotype!, Predict!, Select, reproduce!, TM1997
+import xyBnG.Breeding: phenotype!, Predict!, Select, reproduce!, TM1997, TM2024
 import xyBnG.Founder: sim_base, sample_founder, uniq
 import xyBnG.Conn.TS: sample2xy
-import xyBnG.RS: nrm, irm
+import xyBnG.RS: nrm, irm, grm, xirm
 
 include("xps/a-tale-of-selction.jl")
 include("xps/one-trait.jl")

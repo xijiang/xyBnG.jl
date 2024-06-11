@@ -43,7 +43,7 @@ function irm(xy::AbstractString,
 end
 
 """
-    function irm(xy::AbstractString, loc, ids, jds)
+    irm(xy::AbstractString, loc, ids, jds)
 Calculate mean IBD relationships between `ids` and `jds` using the IBD
 information stored in the `xy` file. It them average the 4 cells to calculate
 the relationships between ID based on IBD information. In reality, these IBD
@@ -56,7 +56,7 @@ function irm(xy::AbstractString, # uniquely coded genotypes
     )
     issorted(ids) || sort!(ids)
     issorted(jds) || sort!(jds)
-    mat, mid, nid = xymap(xy), length(ids), length(jds)
+    mat, mid, nid = XY.mapit(xy), length(ids), length(jds)
     (length(loc) ≠ size(mat, 1) || 
      2ids[end] > size(mat, 2) ||
      2jds[end] > size(mat, 2)) && error("Not number of loci or IDs")
@@ -69,4 +69,27 @@ function irm(xy::AbstractString, # uniquely coded genotypes
         IBD[i, j] = mibd(view(igt, :, 2i-1), view(igt, :, 2i), view(jgt, :, 2j-1), view(jgt, :, 2j))
     end
     IBD
+end
+
+"""
+    xirm(G, fxy, loci, mid, nid)
+When a new generation is generated with `reproduce!`, this function update IRM
+`G` by just calculating the relationships between the (`mid`) old and new
+`(nid-mid)` ID, and those among the new ID, using the bool vector `loci`, which
+specifies which loci are used in file `fxy`. It then expand `G` with the new
+relationships.
+"""
+function xirm(G::Matrix{Float64}, fxy::AbstractString,
+              loci::AbstractVector{Bool},
+              mid::Int, nid::Int)
+    M = zeros(nid, nid)
+    ra, rb = 1:mid, mid+1:nid
+
+    copyto!(view(M, ra, ra), G)
+    T = irm(fxy, loci, ra, rb)
+    copyto!(view(M, ra, rb), T)
+    copyto!(view(M, rb, ra), T')
+    T = irm(fxy, loci, rb)
+    copyto!(view(M, rb, rb), T)
+    M
 end

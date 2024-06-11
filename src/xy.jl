@@ -535,4 +535,16 @@ function issnp(fxy::AbstractString)
         Set(gt) == Set([0, 1])
     end
 end
+
+"""
+    function mapit(fxy::AbstractString)
+Map the entire matrix in `fxy` and return the Matrix.
+"""
+function mapit(fxy::AbstractString)
+    hdr = header(fxy)
+    hdr.flus == Int8('F') || error("Only a full matrix is supported")
+    tp = _type(hdr.type)
+    m, n = dim(fxy)
+    Mmap.mmap(fxy, Matrix{tp}, (m, n), 24)
+end
 end # module XY

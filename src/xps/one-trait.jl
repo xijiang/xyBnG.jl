@@ -1,15 +1,17 @@
-function one_trait()
-    # Scenarios
-    baseDir, tstDir = "rst/base", "rst/onetrt"
-    cattle = Cattle("cattle", 5_000)
-    milk = Trait("milk", 0.25, 10000; sex = 0)
-    nid, nchp, nref = 200, 50_000, 10_000
-    nrng, nsel = 5, 10
-    plan = Plan(25, 50, 200) # default :hierarchical
-    fixed = ["grt"]
-
+function one_trait(;
+                    baseDir = "rst/base",
+                    tstDir = "rst/onetrt",
+                    cattle = Cattle("cattle", 5_000),
+                    milk = Trait("milk", 0.25, 10000; sex = 0),
+                    nid = 200,
+                    nchp = 50_000,
+                    nref = 10_000,
+                    nrng = 5,
+                    nsel = 10,
+                    plan = Plan(25, 50, 200),
+                    fixed = ["grt"],)
     title = md"""# Simulation: Selection on one trait"""
-    tprintln(title)
+    tprintln(title, "\n")
     synopsis = md"""## Synpsis:
     In this play, a founder cattle population is sampled from a base population.
     It is then randomly selected on milk for 5 generations.
@@ -35,11 +37,11 @@ function one_trait()
     act = md"""
     ## Act I: Random selection on milk
     """
-    tprintln(act)
+    tprintln(act, "\n")
     ped = deserialize("$tstDir/founder.ped")
     foo, bar = "founder", "rand"
-    cp("$tstDir/$foo.xy", "$tstDir/$bar.xy", force=true)
     xy = "$tstDir/$bar.xy"
+    cp("$tstDir/$foo.xy", xy, force=true)
     
     @info "  - Operating on generation:"
     for igrt in 1:nrng
@@ -52,34 +54,87 @@ function one_trait()
     end
     println("\n")
     serialize("$tstDir/$bar.ped", ped)
+    @info "  - Calculating IBD relationship matrix"
+    printly("\n")
+    G = irm(xy, lmp.chip, ped.id)
+    write("$tstDir/$bar.irm", G)
 
     act = md"""
     ## Act II: Directional selection on milk
+    
     ### Scene 1: AABLUP method
     """
-    tprintln(act)
+
+    dF, F0 = 0.011, 0.027
+    tprintln(act, "\n")
     foo, bar = "rand", "aablup"
-    cp("$tstDir/$foo.xy", "$tstDir/$bar.xy", force=true)
     xy = "$tstDir/$bar.xy"
-    ped = deserialize("$tstDir/rand.ped")
+    cp("$tstDir/$foo.xy", xy, force=true)
+    ped = deserialize("$tstDir/$foo.ped")
     @info "  - Operating on generation:"
     for igrt in 1:nsel
         print(" $igrt")
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
+        ids = view(ped, ped.grt .== ped.grt[end], :id) # ID of the last generation
         phenotype!(ids, ped, milk)
         G = nrm(ped)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, milk)
-        ng = Select(ids, plan, ped, milk)
+        g22 = G[ids, ids]
+        ng = Select(ids, ped, g22, milk, plan.noff, dF, igrt; F0 = F0)
         reproduce!(ng, ped, xy, lmp, milk)
     end
     println("\n")
     serialize("$tstDir/$bar.ped", ped)
 
     act = md"""
-    ### Scene 2: DOSc method
+    ### Scene 2: IIBLUP method
     """
-    tprintln(act)
-    #@goto debug_skip
-    #@label debug_skip
+    tprintln(act, "\n")
+    foo, bar = "rand", "iiblup"
+    xy = "$tstDir/$bar.xy"
+    cp("$tstDir/$foo.xy", xy, force=true)
+    ped = deserialize("$tstDir/$foo.ped")
+    G = zeros(nrow(ped), nrow(ped))
+    read!("$tstDir/$foo.irm", G)
+    @info "  - Operating on generation:"
+    for igrt in 1:nsel
+        print(" $igrt")
+        ids = view(ped, ped.grt .== ped.grt[end], :id) # ID of the last generation
+        phenotype!(ids, ped, milk)
+        giv = inv(G)
+        Predict!(ids, ped, fixed, giv, milk)
+        g22 = G[ids, ids]
+        mid = nrow(ped)
+        ng = Select(ids, ped, g22, milk, plan.noff, dF, igrt; F0 = F0)
+        reproduce!(ng, ped, xy, lmp, milk)
+        # update the IBD relationship matrix
+        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
+    end
+    println("\n")
+    serialize("$tstDir/$bar.ped", ped)
+
+    act = md"""
+    ### Scene 3: DOSc method
+    """
+    tprintln(act, "\n")
+    foo, bar = "rand", "dsblup"
+    xy = "$tstDir/$bar.xy"
+    cp("$tstDir/$foo.xy", xy, force=true)
+    ped = deserialize("$tstDir/$foo.ped")
+    G = zeros(nrow(ped), nrow(ped))
+    read!("$tstDir/$foo.irm", G)
+    @info "  - Operating on generation:"
+    for igrt in 1:nsel
+        print(" $igrt")
+        ids = view(ped, ped.grt .== ped.grt[end], :id) # ID of the last generation
+        phenotype!(ids, ped, milk)
+        giv = inv(G)
+        Predict!(ids, ped, fixed, giv, milk)
+        g22 = G[ids, ids]
+        mid = nrow(ped)
+        ng = Select(ids, ped, g22, milk, plan.noff, dF, igrt;
+                    F0 = F0, ocs = TM2024)
+        reproduce!(ng, ped, xy, lmp, milk)
+        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
+    end
 end

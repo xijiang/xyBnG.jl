@@ -73,6 +73,49 @@ function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; re
     ng
 end
 
+"""
+    Select(ID::AbstractVector{T}, ped::DataFrame, 
+        rs::AbstractMatrix{Float64}, trt::Trait, 
+        ocs::Function, F0::Float64, dF::Float64,
+        igrt::Int; rev = true) where T <: Integer
+Optimal contribution selection on trait `trt` in DataFrame `ped` with
+relationship matrix `rs` and constraint function `ocs`. The `ID` is the
+individuals to select from. `F0` is the population inbreeding coefficient before
+selection and `dF` is the target inbreeding coefficient increment after
+selection. A constraint `K` is calculated with `F0` and `dF` for the `igrt`
+generation. The contribution of each individual in `ID` is calculated with
+function `ocs`. The `noff` offspring are randomly selected weighted on their
+contribution `c`.
+"""
+function Select(ID::AbstractVector{T},
+    ped::DataFrame,
+    rs::AbstractMatrix{Float64},
+    trt::Trait,
+    noff::Int,
+    dF::Float64,
+    igrt::Int;
+    F0 = 0.0,
+    ocs = TM1997,
+    ong = false,
+    rev = true) where T <: Integer
+    @debug "Optimal contribution selection"
+    dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
+    rev && (dat.idx = maximum(dat.idx) .- dat.idx) # select lowest
+    K = ong ? 2dF : konstraint(dF, F0, igrt)
+    c = ocs(dat, rs, K)
+    cs = ped.sex[ID] .== 1 # sire candidates
+    cd = ped.sex[ID] .== 0 # dam candidates
+    pa = sample(ID[cs], Weights(c[cs]), noff)
+    ma = sample(ID[cd], Weights(c[cd]), noff)
+    pm = sortslices([pa ma], dims=1, by=x -> (x[1], x[2]))
+    DataFrame(id = nrow(ped) + 1:nrow(ped) + noff,
+              sire = pm[:, 1],
+              dam  = pm[:, 2],
+              sex = rand(Int8.(0:1), noff),
+              grt = ped.grt[end] + 1)
+end
+
+#=
 function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, c::AbstractVector{Float64}) where T <: Integer
     @debug "Select `ID` according to their contribution `c`"
     pm = begin
@@ -109,7 +152,6 @@ function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, c::AbstractVe
     )
 end
 
-#=
 """
     Select!(ped::DataFrame, ppo::Tuple{Int, Int, Int}, trt::Trait; mate = :random, rev = true)
 
