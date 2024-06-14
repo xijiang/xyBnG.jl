@@ -1,41 +1,4 @@
 """
-    Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
-
-Selection `ID` on their EBV of trait `trt` in DataFrame `ped` according to plan
-`plan`.
-"""
-function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
-    @info "Selection on $(trt.name)"
-    df = select(view(ped, ID, :), :id, :sex, r"ebv_")
-    sort!(df, "ebv_" * trt.name, rev = trt.rev)
-    gps = groupby(df, :sex)
-    mas = gps[1].id[1:plan.nma]
-    pas = gps[2].id[1:plan.npa]
-    ng  = mate(pas, mas, plan)
-    ng.id .+= nrow(ped)
-    ng.grt .+= ped.grt[end]
-    ng
-end
-
-function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; rev = true) where T <: Integer
-    @info "Selection on $(join(keys(dic), ", "))"
-    df = select(view(ped, ID, :), :id, :sex, r"ebv_")
-    index = zeros(nrow(df))
-    for trt in keys(dic)
-        index += df[!, "ebv_" * trt] * dic[trt]
-    end
-    df.index = index
-    sort!(df, :index, rev = rev)
-    gps = groupby(df, :sex)
-    mas = gps[1].id[1:plan.nma]
-    pas = gps[2].id[1:plan.npa]
-    ng = mate(pas, mas, plan)
-    ng.id .+= nrow(ped)
-    ng.grt .+= ped.grt[end]
-    ng
-end
-
-"""
     function mate(pas::Vector{T}, mas::Vector{T}, plan::Plan, ped::DataFrame) where T <: Integer
 
 Mate `pas`, `mas` according to `plan` to produce `noff` offspring in DataFrame
@@ -59,7 +22,7 @@ function mate(pas::AbstractVector{T}, mas::AbstractVector{T}, plan::Plan) where 
         end
     end
     pm = sortslices([sire dam], dims=1, by=x -> (x[1], x[2]))
-    df = DataFrame(
+    DataFrame(
         id = 1:plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
@@ -68,7 +31,127 @@ function mate(pas::AbstractVector{T}, mas::AbstractVector{T}, plan::Plan) where 
     )
 end
 
+"""
+    Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
+
+Selection `ID` on their EBV of trait `trt` in DataFrame `ped` according to plan
+`plan`.
+"""
+function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
+    @debug "Selection on $(trt.name)"
+    df = select(view(ped, ID, :), :id, :sex, r"ebv_")
+    sort!(df, "ebv_" * trt.name, rev = trt.rev)
+    gps = groupby(df, :sex)
+    mas = gps[1].id[1:plan.nma]
+    pas = gps[2].id[1:plan.npa]
+    ng  = mate(pas, mas, plan)
+    ng.id .+= nrow(ped)
+    ng.grt .+= maximum(ped.grt[ID])
+    ng
+end
+
+"""
+    Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; rev = true) where T <: Integer
+
+Selection `ID` on their weighted EBV of traits in dictionary `dic`.
+"""
+function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; rev = true) where T <: Integer
+    @debug "Selection on $(join(keys(dic), ", "))"
+    df = select(view(ped, ID, :), :id, :sex, r"ebv_")
+    index = zeros(nrow(df))
+    for trt in keys(dic)
+        index += df[!, "ebv_" * trt] * dic[trt]
+    end
+    df.index = index
+    sort!(df, :index, rev = rev)
+    gps = groupby(df, :sex)
+    mas = gps[1].id[1:plan.nma]
+    pas = gps[2].id[1:plan.npa]
+    ng = mate(pas, mas, plan)
+    ng.id .+= nrow(ped)
+    ng.grt .+= ped.grt[end]
+    ng
+end
+
+"""
+    Select(ID::AbstractVector{T}, ped::DataFrame, 
+        rs::AbstractMatrix{Float64}, trt::Trait, 
+        ocs::Function, F0::Float64, dF::Float64,
+        igrt::Int; rev = true) where T <: Integer
+Optimal contribution selection on trait `trt` in DataFrame `ped` with
+relationship matrix `rs` and constraint function `ocs`. The `ID` is the
+individuals to select from. `F0` is the population inbreeding coefficient before
+selection and `dF` is the target inbreeding coefficient increment after
+selection. A constraint `K` is calculated with `F0` and `dF` for the `igrt`
+generation. The contribution of each individual in `ID` is calculated with
+function `ocs`. The `noff` offspring are randomly selected weighted on their
+contribution `c`.
+"""
+function Select(ID::AbstractVector{T},
+                ped::DataFrame,
+                rs::AbstractMatrix{Float64},
+                trt::Trait,
+                noff::Int,
+                dF::Float64,
+                igrt::Int;
+                F0 = 0.0,
+                ocs = TM1997,
+                ong = false,
+                rev = true) where T <: Integer
+    @debug "Optimal contribution selection"
+    dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
+    rev && (dat.idx = maximum(dat.idx) .- dat.idx) # select lowest
+    K = ong ? 2dF : konstraint(dF, F0, igrt)
+    c = ocs(dat, rs, K)
+    cs = ped.sex[ID] .== 1 # sire candidates
+    cd = ped.sex[ID] .== 0 # dam candidates
+    pa = sample(ID[cs], Weights(c[cs]), noff)
+    ma = sample(ID[cd], Weights(c[cd]), noff)
+    pm = sortslices([pa ma], dims=1, by=x -> (x[1], x[2]))
+    DataFrame(id = nrow(ped) + 1:nrow(ped) + noff,
+              sire = pm[:, 1],
+              dam  = pm[:, 2],
+              sex = rand(Int8.(0:1), noff),
+              grt = ped.grt[end] + 1)
+end
+
 #=
+function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, c::AbstractVector{Float64}) where T <: Integer
+    @debug "Select `ID` according to their contribution `c`"
+    pm = begin
+        df = DataFrame(id = ID, sex = ped.sex[ID], c = c,
+                        n = Int.(round.(c * plan.noff)))
+        df = view(df, df.c .> 0, :)
+        groupby(df, :sex)
+    end
+    if plan.mate == :random
+        pa = sample(pm[2].id, Weights(pm[2].c), plan.noff)
+        ma = sample(pm[1].id, Weights(pm[1].c), plan.noff)
+    else
+        pa, ma = Int[], Int[]
+        # Note that the number of offspring may not be exactly `noff`
+        for (id, _, _, n) in eachrow(pm[2])
+            append!(pa, fill(id, n))
+        end
+        for (id, _, _, n) in eachrow(shuffle(pm[1]))
+            append!(ma, fill(id, n))
+        end
+        pa = sort(pa[1:plan.noff])
+        ma = ma[1:plan.noff] # already for hierarchical
+        if plan.mate == :factorial
+            ma = shuffle(ma)
+        end
+    end
+    nid = nrow(ped)
+    DataFrame(
+        id = nid + 1:nid + plan.noff,
+        sire = pa,
+        dam = ma,
+        sex = rand(Int8.(0:1), plan.noff),
+        grt = maximum(ped.grt[ID]) + 1,
+    )
+end
+
 """
     Select!(ped::DataFrame, ppo::Tuple{Int, Int, Int}, trt::Trait; mate = :random, rev = true)
 
@@ -131,11 +214,11 @@ end
 # under construction
 function Select!(ped::DataFrame, ppo::Tuple{Int, Int, Int},
     trt::Trait, on::Union{AbstractString, Symbol}; mate = :random)
-    @info "Selection on $on of $(trt.name)"
+    @debug "Selection on $on of $(trt.name)"
 end
 
 function Select!(ped::DataFrame, ppo::Tuple{Int, Int, Int},
     c::AbstractVector{Float64}; mate = :random)
-    @info "Selection last generation of `ped` with contribution $c"
+    @debug "Selection last generation of `ped` with contribution $c"
 end
 =#

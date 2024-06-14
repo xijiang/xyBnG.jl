@@ -10,9 +10,12 @@ module Breeding
 
 using DataFrames
 using Distributions
+using LinearAlgebra
 using Mmap
 using Random
 using Serialization
+using SparseArrays
+import StatsBase: sample, Weights
 using xyBnG.XY
 using xyBnG.xyTypes: Trait, Cattle, Species, Plan, name
 
@@ -22,5 +25,6 @@ include("brd/predict.jl")
 include("brd/select.jl")
 include("brd/reproduce.jl")
 include("brd/ocs.jl")
+include("brd/xecodes.jl")
 
 end # module Breeding

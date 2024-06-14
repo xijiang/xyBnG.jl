@@ -10,10 +10,9 @@
     hdr.x, hdr.y, hdr.v, hdr.flus == Int8('x'), Int8('y'), Int8(' '), Int8('F')
     hdr.major, hdr.type, hdr.r, hdr.u == t0, t1, t0, t0
     
-    hdr2 = xy.header(x = 'x', y = 'y', v = ' ', flus = 'F',
-                     major = 0, type = 1, r = 0, u = 0)
+    hdr2 = xy.header(flus = 'F', major = 0, type = 1, u = 0)
     @test xy.isEqual(hdr, hdr2)
-    
+
     # Test init! function
     xy_file = "test.xy"
     hdr = xy.header()

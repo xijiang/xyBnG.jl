@@ -71,14 +71,14 @@ mutable struct header
     major::Int8  # 0 for loci majored, 1 for ID majored, or else
     type::Int8   # element type of the matrix, determined by function _type
     r::Int8      # r is reserved
-    u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding
+    u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding, 3+ else
     function header(;
         flus  = 'F',  # full, lower triangle, upper triangle, symmetric
         major = 0,
         type  = 1,
         u     = 0,
         )
-        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype || u ∉ 0:2 && 
+        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype || u < 0 && 
             error("Invalid header")
         new('x', 'y', ' ', flus, major, type, 0, u)
     end
@@ -534,5 +534,17 @@ function issnp(fxy::AbstractString)
         gt = Mmap.mmap(fxy, Matrix{Int8}, dm, 24)
         Set(gt) == Set([0, 1])
     end
+end
+
+"""
+    function mapit(fxy::AbstractString)
+Map the entire matrix in `fxy` and return the Matrix.
+"""
+function mapit(fxy::AbstractString)
+    hdr = header(fxy)
+    hdr.flus == Int8('F') || error("Only a full matrix is supported")
+    tp = _type(hdr.type)
+    m, n = dim(fxy)
+    Mmap.mmap(fxy, Matrix{tp}, (m, n), 24)
 end
 end # module XY
