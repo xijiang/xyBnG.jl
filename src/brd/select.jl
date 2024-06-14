@@ -88,16 +88,16 @@ function `ocs`. The `noff` offspring are randomly selected weighted on their
 contribution `c`.
 """
 function Select(ID::AbstractVector{T},
-    ped::DataFrame,
-    rs::AbstractMatrix{Float64},
-    trt::Trait,
-    noff::Int,
-    dF::Float64,
-    igrt::Int;
-    F0 = 0.0,
-    ocs = TM1997,
-    ong = false,
-    rev = true) where T <: Integer
+                ped::DataFrame,
+                rs::AbstractMatrix{Float64},
+                trt::Trait,
+                noff::Int,
+                dF::Float64,
+                igrt::Int;
+                F0 = 0.0,
+                ocs = TM1997,
+                ong = false,
+                rev = true) where T <: Integer
     @debug "Optimal contribution selection"
     dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
     rev && (dat.idx = maximum(dat.idx) .- dat.idx) # select lowest

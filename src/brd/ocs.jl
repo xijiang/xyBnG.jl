@@ -58,9 +58,16 @@ function TM2024(ped, A, K)
     ncd = size(A, 1) # number of candidates
     nsire = sum(ped.sex)
     ndam  = ncd - nsire
-    DOSop(ped.idx, A, zeros(ncd), 1., K, [nsire, ndam], ped.sex .+ 1)
+    @debug nsire, ndam, ncd
+    DOSop(ped.idx, A, zeros(ncd), 1., K, [nsire, ndam], ped.sex .+ 1) / 2.0
 end
 
+"""
+    konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
+Calculate the constraint about inbreeding increase in the next generation. Note,
+when `G` relationship matrix is used, there is a consideration about frequency
+already. Hence `2dF` is used as `K`.
+"""
 function konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
     if ong
         2dF

@@ -109,14 +109,15 @@ function DOSc(lamb0, uhat, A, A12, s, Ktilde, Nx, sex)
     NS = collect(1:N) #not selected set
     IDS = collect(1:N) #list of IDs
 
-    sumS = sumD = sumSD = sumA12S = sumA12D = 0.0
+    sumS = sumD = sumSD = sumA12S = sumA12D = Kval = 0.0
     setS = Int64.([])
     setD = Int64.([])
+
 
     for ianim = 1:sum(Nx)  #select Nx animals
         #step1:
         crit = uhat
-        sum(nx) > 0 ? crit -= 2 * lamb0 * s * A * c : nothing
+        sum(nx) > 0 ? crit -= 2 * fact * lamb0 * s * A * c : nothing
         (1 - s) > 0 ? crit -= lamb0A12 : nothing
 
         #step2:
@@ -141,26 +142,29 @@ function DOSc(lamb0, uhat, A, A12, s, Ktilde, Nx, sex)
             end
             deleteat!(NS, imax)
         end
-        for i = 1:size(Nx, 1)
-            nx[i] > 0 ? c[sex.==i] .= 1 / nx[i] : c[sex.==i] .= 0
-        end
-        c[NS] .= 0
-
+        c .= 0
+        (nx[1] > 0) ? c[setS] .= 1 / nx[1] : nothing
+        (Nsex == 2) && (nx[2] > 0) ? c[setD] .= 1 / nx[2] : nothing
 
         #Step3
         Kval = 0.0
         (nx[1] > 0) ? Kval += s * fact * fact * sumS / nx[1] / nx[1] : nothing
-        (size(nx, 2) == 2) && (nx[2] > 0) ? Kval += s * fact * fact * sumD / nx[2] / nx[2] : nothing
-        (size(nx, 2) == 2) && (nx[2] * nx[1] > 0) ? Kval += s * fact * sumSD / nx[1] / nx[2] : nothing
+        (size(nx, 1) == 2) && (nx[2] > 0) ? Kval += s * fact * fact * sumD / nx[2] / nx[2] : nothing
+        (size(nx, 1) == 2) && (nx[2] * nx[1] > 0) ? Kval += s * fact * sumSD / nx[1] / nx[2] : nothing
         if (1 - s > 0)
             (nx[1] > 0) ? Kval += 2 * (1 - s) * fact * sumA12S / nx[1] : nothing
             (nx[2] > 0) ? Kval += 2 * (1 - s) * fact * sumA12D / nx[2] : nothing
         end
-        Kval <= Ktilde ? break : nothing
-        all(nx .== Nx) ? break : nothing
+        #    println("Kval,cAc ",Kval," ",c'*A*c*fact^2)
+        #    println("S:Kval,cAc ",fact*fact*sumS/nx[1]/nx[1]," ",c[sex.==1]'*A[sex.==1,sex.==1]*c[sex.==1]*fact^2)
+        #    nx[2]>0 && println("D:Kval,cAc ",fact*fact*sumD/nx[2]/nx[2]," ",c[sex.==2]'*A[sex.==2,sex.==2]*c[sex.==2]*fact^2)
+        if (prod(nx) > 0)    #both sexes selected
+            Kval <= Ktilde ? break : nothing
+            all(nx .== Nx) ? break : nothing
+        end
 
     end
-
+    # println("lamb, Kval,cAc ", lamb0, " ", Kval, " ", c' * A * c * fact^2, " nx ", nx)
     return c, nx
 
 end #function
@@ -273,4 +277,5 @@ function DOSop(uhat, A, A12, s, Ktilde, Nx, sex)
         (c, n) = DOSc(x2, uhat, A, A12, s, Ktilde, Nx, sex)
         return vec(c)
     end
-end
+
+end #function

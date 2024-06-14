@@ -7,6 +7,7 @@ include("conn.jl")
 include("founder.jl")
 include("breeding.jl")
 include("relationship.jl")
+include("summary.jl")
 include("xps.jl")
 
 import xyBnG.xyTypes: Species, Cattle, Trait

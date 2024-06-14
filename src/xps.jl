@@ -14,6 +14,7 @@ using Mmap
 using Serialization
 using Term
 using xyBnG.XY
+using xyBnG.Sum
 import xyBnG.xyTypes: Cattle, Species, Trait, Plan, name
 import xyBnG.Breeding: phenotype!, Predict!, Select, reproduce!, TM1997, TM2024
 import xyBnG.Founder: sim_base, sample_founder, uniq

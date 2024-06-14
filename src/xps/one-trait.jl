@@ -7,9 +7,10 @@ function one_trait(;
                     nchp = 50_000,
                     nref = 10_000,
                     nrng = 5,
-                    nsel = 10,
+                    nsel = 20,
                     plan = Plan(25, 50, 200),
-                    fixed = ["grt"],)
+                    fixed = ["grt"],
+                    dF = 0.011,)
     title = md"""# Simulation: Selection on one trait"""
     tprintln(title, "\n")
     synopsis = md"""## Synpsis:
@@ -55,17 +56,16 @@ function one_trait(;
     println("\n")
     serialize("$tstDir/$bar.ped", ped)
     @info "  - Calculating IBD relationship matrix"
-    printly("\n")
+    println("\n")
     G = irm(xy, lmp.chip, ped.id)
     write("$tstDir/$bar.irm", G)
+    F0 = 0.027
 
     act = md"""
     ## Act II: Directional selection on milk
     
     ### Scene 1: AABLUP method
     """
-
-    dF, F0 = 0.011, 0.027
     tprintln(act, "\n")
     foo, bar = "rand", "aablup"
     xy = "$tstDir/$bar.xy"
@@ -113,6 +113,7 @@ function one_trait(;
     println("\n")
     serialize("$tstDir/$bar.ped", ped)
 
+    #=
     act = md"""
     ### Scene 3: DOSc method
     """
@@ -132,9 +133,11 @@ function one_trait(;
         Predict!(ids, ped, fixed, giv, milk)
         g22 = G[ids, ids]
         mid = nrow(ped)
+        @debug mid
         ng = Select(ids, ped, g22, milk, plan.noff, dF, igrt;
                     F0 = F0, ocs = TM2024)
         reproduce!(ng, ped, xy, lmp, milk)
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
     end
+    =#
 end
