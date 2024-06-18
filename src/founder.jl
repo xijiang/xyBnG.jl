@@ -13,7 +13,9 @@ import xyBnG.xyTypes: Cattle, Species, Trait
 
 Simulate a cattle population of name `pop.name`, and `pop.nid` ID in `dir`.
 
-Note: This is a simulation with the coancestor/backward simulator msprime.
+Note:
+- This is a simulation with the coancestor/backward simulator msprime.
+- Needs to have `tskit`, `msprime`, `scipy` and `stdpopsim` installed.
 """
 function sim_base(pop::Cattle, dir::AbstractString)
     '~' ∈ dir && error("Character '~' is forbidden in dir")

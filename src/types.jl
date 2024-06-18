@@ -58,22 +58,23 @@ struct Trait
 end
 
 function Base.show(io::IO, trt::Trait)
-    println(io, "Name: $(trt.name)")
-    println(io, "Type: $(trt.type)")
+    println(io, "             Name: $(trt.name)")
+    println(io, "             Type: $(trt.type)")
+    println(io, "      Express age: $(trt.age)")
     if trt.sex == 0
-        println(io, "Express in: females")
+        println(io, "       Express in: females")
     elseif trt.sex == 1
-        println(io, "Express in: males")
+        println(io, "       Express in: males")
     else
-        println(io, "Express in: both sexes")
+        println(io, "       Express in: both sexes")
     end
-    println(io, "Express age: $(trt.age)")
-    println(io, "Heritability: $(trt.h2)")
-    println(io, "No. QTL: $(trt.nQTL)")
-    println(io, "TBV distribution: $(trt.da)")
-    println(io, "Var dominance: $(trt.vd)")
-    println(io, "Dominance dist: $(trt.dd)")
-    print(io, "Higher the better: $(trt.rev)")
+    println(io, "      Express age: $(trt.age)")
+    println(io, "     Heritability: $(trt.h2)")
+    println(io, "          No. QTL: $(trt.nQTL)")
+    println(io, " TBV distribution: $(trt.da)")
+    println(io, "    Var dominance: $(trt.vd)")
+    println(io, "   Dominance dist: $(trt.dd)")
+    print(io,   "Higher the better: $(trt.rev)")
 end
 
 """
@@ -108,8 +109,8 @@ struct Cattle <: Species
 end
 
 function Base.show(io::IO, c::Cattle)
-    println(io, "Name: $(c.name)")
-    print("Pop. size: $(c.nid)")
+    println(io, "     Name: $(c.name)")
+    print(  io, "Pop. size: $(c.nid)")
 end
 
 function Cattle(nid::Int)
@@ -145,10 +146,10 @@ mutable struct Plan
 end
 
 function Base.show(io::IO, p::Plan)
-    println(io, "N-sires: $(p.npa)")
-    println(io, "N-dams: $(p.nma)")
+    println(io, "    N-sires: $(p.npa)")
+    println(io, "     N-dams: $(p.nma)")
     println(io, "N-offspring: $(p.noff)")
-    print(io, "Mating: $(p.mate)")
+    print(  io, "     Mating: $(p.mate)")
 end
 
 # ToDo: Add a generic species

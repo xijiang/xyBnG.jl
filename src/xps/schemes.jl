@@ -17,12 +17,28 @@
 # The selected parents are randomly selected on contibution weights to mate.
 
 """
-    savepar(dic, par)
-Save the parameters of the current simulation into file `par`.
+    savepar(dic, scenario)
+Save the parameters of the current simulation into file `scenario`.
 """
-function savepar(dic, par)
-    for (key, val) in dic
-        @show key, val
+function savepar(scenario, file)
+    n = 0
+    for k in keys(scenario)
+        n = max(n, length(string(k)))
+    end
+    ios, iom = IOBuffer(), IOBuffer()
+
+    for (k, v) in pairs(scenario)
+        if typeof(v) ∈ (Cattle, Trait, Plan, Species)
+            println(iom)
+            println(iom, "[$k]")
+            println(iom, v)
+        else
+            println(ios, lpad(k, n), ": ", v)
+        end
+    end
+    open(file, "w") do io
+        print(io, String(take!(ios)))
+        print(io, String(take!(iom)))
     end
 end
 
@@ -296,6 +312,8 @@ function gblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
         ng = Select(ids, plan, ped, trait)
         reproduce!(ng, ped, xy, lmp, trait)
     end
+    println()
+    serialize("$test/$bar.ped", ped)
 end
 
 """
@@ -323,6 +341,8 @@ function ablup(test, foo, bar, lmp, ngn, trait, fixed, plan)
         ng = Select(ids, plan, ped, trait)
         reproduce!(ng, ped, xy, lmp, trait)
     end
+    println()
+    serialize("$test/$bar.ped", ped)
 end
 
 """
