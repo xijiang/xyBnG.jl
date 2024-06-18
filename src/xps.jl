@@ -11,6 +11,7 @@ using DataFrames
 using LinearAlgebra
 using Markdown
 using Mmap
+using Random
 using Serialization
 using Term
 using xyBnG.XY
@@ -21,6 +22,7 @@ import xyBnG.Founder: sim_base, sample_founder, uniq
 import xyBnG.Conn.TS: sample2xy
 import xyBnG.RS: nrm, irm, grm, xirm
 
+include("xps/schemes.jl")
 include("xps/a-tale-of-selction.jl")
 include("xps/one-trait.jl")
 include("xps/devel.jl")

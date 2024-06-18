@@ -1,3 +1,10 @@
+"""
+    Sum
+The ``Sum`` module provides functions to calculate summary statistics of the
+simulations. It has majorly two parts. One is to summarize each repeat of a
+simulation. The other contains a few notebooks for the presentation of the
+summaries.
+"""
 module Sum
 
 using xyBnG.XY

@@ -67,3 +67,16 @@ function grm(gt::AbstractArray)
         end
     end
 end
+
+"""
+    grm(xy::AbstractArray, loci)
+Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at
+`loci`.
+"""
+function grm(xy::AbstractString, loci)
+    hdr, dim = XY.header(xy), XY.dim(xy)
+    hap = XY.mapit(xy)
+    gt = hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
+        isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
+    grm(gt)
+end

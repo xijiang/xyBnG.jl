@@ -110,7 +110,7 @@ function sample2xy(dir::AbstractString, dst::AbstractString,
     0 < nid ≤ tid && 0. ≤ maf ≤ 0.4 && all(nlc .> 0) ||
         throw(ArgumentError("Invalid argument(set)"))
     
-    @info "Sample $nid ID with $nlc loci and MAF $maf from $dir from chromosome:"
+    @info "  - Sample $nid ID with $nlc loci and MAF $maf from $dir from chromosome:"
     ids = sort(shuffle(1:tid)[1:nid]) # sample IDs
     hps = sort([2ids .- 1; 2ids])
     nchr = sum(.!isnothing.(match.(r"ts$", readdir(dir))))

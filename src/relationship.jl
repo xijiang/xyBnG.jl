@@ -10,5 +10,6 @@ import xyBnG.Util: memavail
 include("rs/grm.jl")
 include("rs/irm.jl")
 include("rs/nrm.jl")
+include("rs/phasedibd.jl")
 
 end # module RS
