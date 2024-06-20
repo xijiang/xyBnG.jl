@@ -50,14 +50,20 @@ function dosblup(;
 
         # The starting point: random selection
         randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan; ibd=true)
-        aaocs(test, "$tag-rand", "$tag-aablup", lmp, nsel, trait, fixed, plan.noff, dF, F0)
-        iiocs(test, "$tag-rand", "$tag-iiblup", lmp, nsel, trait, fixed, plan.noff, dF, F0)
-        iidos(test, "$tag-rand", "$tag-iidos",  lmp, nsel, trait, fixed, plan.noff, dF, F0)
-        ggocs(test, "$tag-rand", "$tag-ggblup", lmp, nsel, trait, fixed, plan.noff, dF, F0)
-        agocs(test, "$tag-rand", "$tag-agblup", lmp, nsel, trait, fixed, plan.noff, dF, F0)
-        igocs(test, "$tag-rand", "$tag-igblup", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        # OCS
+        aaocs(test, "$tag-rand", "$tag-aaocs", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        iiocs(test, "$tag-rand", "$tag-iiocs", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        iidos(test, "$tag-rand", "$tag-iidos", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        #tgocs(test, "$tag-rand", "$tag-tgocs", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        ggocs(test, "$tag-rand", "$tag-ggocs", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        agocs(test, "$tag-rand", "$tag-agocs", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        igocs(test, "$tag-rand", "$tag-igocs", lmp, nsel, trait, fixed, plan.noff, dF, F0)
+        # Ordinary BLUP
         gblup(test, "$tag-rand", "$tag-gblup", lmp, nsel, trait, fixed, plan)
         ablup(test, "$tag-rand", "$tag-ablup", lmp, nsel, trait, fixed, plan)
         iblup(test, "$tag-rand", "$tag-iblup", lmp, nsel, trait, fixed, plan)
+    end
+    open("$test/scenario.par", "a") do io
+        println(io, "Ended: ", time())
     end
 end

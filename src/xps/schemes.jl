@@ -37,6 +37,8 @@ function savepar(scenario, file)
         end
     end
     open(file, "w") do io
+        println(io, lpad("Started", n), ": ", time())
+        # use Dates.unix2datetime(time()) to convert above time to DateTime
         print(io, String(take!(ios)))
         print(io, String(take!(iom)))
     end
@@ -181,6 +183,43 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
 end
 
 """
+    tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+Optimal contribution selection with `G` relationship matrix for both EBV and
+constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
+SNP linkage information are in DataFrame `lmp`. The results are saved in
+`bar`.xy, `bar`.ped in directory `test`. The selection is on a single trait
+`trait` with fixed effects `fixed`, which is a column name vector in pedigree
+DataFrame. The `noff` pair of parents are sampled according to their
+contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
+coefficient of the `foo` population.
+
+This function uses the TM1997 algorithm for OCS. As the constraint matrix is
+using GRM, which has already considered the allele frequency changes, hence
+option `ong` is set to `true`.
+
+See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
+[`agocs`](@ref), [`igocs`](@ref).
+"""
+function tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    @info "  - Directional selection TGBLUP for $ngn generations"
+    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
+    cp("$test/$foo.xy", xy, force=true)
+    for ign in 1:ngn
+        print(" $ign")
+        ids = view(ped, ped.grt .== ped.grt[end], :id)
+        phenotype!(ids, ped, trait)
+        G = grm(xy, lmp.chip)
+        giv = inv(G)
+        Predict!(ids, ped, fixed, giv, trait)
+        g22 = G[ids, ids]
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0, ong=true)
+        reproduce!(ng, ped, xy, lmp, trait)
+    end
+    println()
+    serialize("$test/$bar.ped", ped)
+end
+
+"""
     ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
 Optimal contribution selection with `G` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
@@ -191,7 +230,9 @@ DataFrame. The `noff` pair of parents are sampled according to their
 contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
 coefficient of the `foo` population.
 
-This function uses the TM1997 algorithm for OCS.
+This function uses the TM1997 algorithm for OCS. As the constraint matrix is
+using GRM, which has already considered the allele frequency changes, hence
+option `ong` is set to `true`.
 
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
@@ -208,7 +249,7 @@ function ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0, ong=true)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()

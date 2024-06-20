@@ -62,7 +62,7 @@ function Base.show(io::IO, trt::Trait)
     println(io, "             Type: $(trt.type)")
     println(io, "      Express age: $(trt.age)")
     if trt.sex == 0
-        println(io, "       Express in: females")
+        println(io, "     Expresses in: females")
     elseif trt.sex == 1
         println(io, "       Express in: males")
     else
@@ -146,10 +146,10 @@ mutable struct Plan
 end
 
 function Base.show(io::IO, p::Plan)
-    println(io, "    N-sires: $(p.npa)")
-    println(io, "     N-dams: $(p.nma)")
-    println(io, "N-offspring: $(p.noff)")
-    print(  io, "     Mating: $(p.mate)")
+    println(io, "    No. sires: $(p.npa)")
+    println(io, "     No. dams: $(p.nma)")
+    println(io, "No. offspring: $(p.noff)")
+    print(  io, "       Mating: $(p.mate)")
 end
 
 # ToDo: Add a generic species
