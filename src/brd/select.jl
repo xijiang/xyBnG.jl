@@ -100,9 +100,9 @@ function Select(ID::AbstractVector{T},
                 rev = true) where T <: Integer
     @debug "Optimal contribution selection"
     dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
-    rev && (dat.idx = maximum(dat.idx) .- dat.idx) # select lowest
+    rev || (dat.idx *= -1) # select lowest
     K = ong ? 2dF : konstraint(dF, F0, igrt)
-    c = ocs(dat, rs, K)
+    c = ocs(dat, rs, K)  # this is to select the highest, or equivalently rev = true
     cs = ped.sex[ID] .== 1 # sire candidates
     cd = ped.sex[ID] .== 0 # dam candidates
     pa = sample(ID[cs], Weights(c[cs]), noff)
