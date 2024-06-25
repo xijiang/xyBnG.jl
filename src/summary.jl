@@ -60,6 +60,15 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
 end
 
 """
+    snphet(q::AbstractVector{Float64})
+Calculate the heterozygosity of a diallelic locus with allele frequency `q`.
+"""
+function snphet(q::AbstractVector{Float64})
+    H = q .* q + (1 .- q) .* (1 .- q) # homozygosity
+    1 - mean(H) # heterozygosity
+end
+
+"""
     xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
 Summarize the simulation results in `xy` and `ped` files. `ssg` is the selection
 starting generation.
@@ -117,6 +126,8 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
     xref  = zeros(Int, ng)  # number of reference loci fixed
     xfq = zeros(Int, ng)    # number of favorable QTL fixed
     xuq = zeros(Int, ng)    # number of unfavorable QTL fixed
+    fhet = zeros(ng)        # Inbreeding by heterozygosity
+    fdrift = zeros(ng)      # Inbreeding by drift
     q = zeros(size(frq))
     for i in 1:ng
         chip = view(frq, lmp.chip, i)
@@ -146,6 +157,7 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
     covdq2 = zeros(ng)      # covariance between q₀ corrected and qᵢ
 
     q0 = q[:, ssg]
+    H0 = snphet(q0)
     for i in ssg+1:ng
         loci = frq[:, i] .≠ 2ss.nid[i] .&& frq[:, i] .≠ 0
         factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
@@ -154,8 +166,11 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
         covdq[i] = cov(δq, q₀)
         q₀ = (q0[loci] .- .5) ./ factor
         covdq2[i] = cov(δq, q₀)
+        Ht = snphet(q[:, i])
+        fhet[i] = (H0 - Ht) / H0
+        fdrift[i] = 2var(q[:, i] - q0) / H0
     end
-    insertcols!(ss, :covdq => covdq, :covdq2 => covdq2)
+    insertcols!(ss, :covdq => covdq, :covdq2 => covdq2, :fhet => fhet, :fdrift => fdrift)
     ss
 end
 
@@ -178,6 +193,11 @@ function xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::T
     xysum(pd, xy, lmp, trait, ssg)
 end
 
+"""
+    savesum(file::AbstractString, df::DataFrame)
+Save the summary DataFrame `df` to file `file`. If the file exists, append the
+DataFrame to the existing one.
+"""
 function savesum(file::AbstractString, df::DataFrame)
     if isfile(file)
         tsm = deserialize(file)

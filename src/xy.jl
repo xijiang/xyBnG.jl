@@ -140,10 +140,11 @@ function header(xy::AbstractString)
     (hdr.x == Int8('x') && hdr.y == Int8('y') && hdr.v == Int8(' ') && 0 < hdr.type ≤ _nvldtype) || return nothing
     nrows, ncols = dim(xy)
     nbyte = sizeof(_type(hdr.type))
+    return sz
     if hdr.flus == Int8('F')
-        sz == 24 + nrows * ncols * nbyte || return nothing
+        sz == 24 + big(nrows) * ncols * nbyte || nothing
     else
-        sz == 24 + nrows * (nrows + 1) ÷ 2 * nbyte || return nothing
+        sz == 24 + big(nrows) * (nrows + 1) ÷ 2 * nbyte || return nothing
     end
     hdr
 end

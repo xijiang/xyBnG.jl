@@ -35,7 +35,7 @@ function a_tale_of_selection()
     Simulate a cattle base population begins here."""
     tprintln(act)
 
-    isfile("$baseDir/desc.txt") || sim_base(cattle, baseDir)
+    isfile("$baseDir/desc.txt") || ts_base(cattle, baseDir)
     line = readlines("$baseDir/desc.txt")
     desc = md"""
     This population is named $(line[1]), and of $(line[2]) individuals

@@ -3,4 +3,5 @@
     @test !isnothing(Sys.which("stdpopsim"))
     @test !isnothing(Sys.which("tskit"))
     @test !isnothing(Sys.which("slim"))
+    @test !isnothing(Sys.which("macs"))
 end

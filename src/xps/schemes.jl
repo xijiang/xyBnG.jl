@@ -409,7 +409,6 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
         phenotype!(ids, ped, trait)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
-        g22 = G[ids, ids]
         mid = nrow(ped)
         ng = Select(ids, plan, ped, trait)
         reproduce!(ng, ped, xy, lmp, trait)
@@ -417,4 +416,7 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     end
     println()
     serialize("$test/$bar.ped", ped)
+end
+
+function phaseibd(test, foo, bar, lmp, ngn, trait, fixed, plan)
 end

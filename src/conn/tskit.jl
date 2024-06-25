@@ -9,6 +9,7 @@ using Statistics
 using xyBnG.XY
 using xyBnG.xyTypes
 
+#=
 """
     tsbits(tsf::AbstractString)
 
@@ -18,7 +19,7 @@ reference alleles and the allele frequencies.
 function tsbits(tsf::AbstractString)
     tskit = pyimport("tskit")
     ts = tskit.load(tsf)
-    gt = ts.genotype_matrix()
+    gt = Int8.(ts.genotype_matrix())
     nlc = size(gt, 1)
     vld = zeros(Bool, nlc)
     frq = zeros(nlc)
@@ -26,47 +27,64 @@ function tsbits(tsf::AbstractString)
         vld[i] = maximum(gt[i, :]) == 1
         frq[i] = mean(gt[i, :])
     end
-    Bool.(gt[vld, :]), Int32.(ts.tables.sites.position[vld]), Char.(ts.tables.sites.ancestral_state[vld]), frq[vld]
+    alt = Int8[]
+    for v in ts.variants()
+        push!(alt, Int8(v.alleles[2][1]))
+    end
+    (gt[vld, :],
+     Int32.(ts.tables.sites.position[vld]),
+     Char.(ts.tables.sites.ancestral_state[vld]),
+     Char.(alt[vld]),
+     frq[vld])
 end
+=#
 
 """
     toxy(dir::AbstractString)
 
 Merge the ts files in `dir` to a xy file, and serialized linkage map DataFrame.
+The `xy` file is ID majored, in line with the `macs` results. This is to ease 
+file appending and use less memory.
+
+This is not necessary most of the time. I can sample the results directly from
+the tskit files.
 """
 function toxy(dir::AbstractString)
-    @info "Merge the ts files of $pop in $dir to a xy file"
+    tskit = pyimport("tskit")
     name = readline("$dir/desc.txt")
     nchr = sum(.!isnothing.(match.(r"ts$", readdir(dir))))
-    gt, pos, ref, frq = tsbits("$dir/1.ts")
-    lmp = DataFrame(chr = Int8(1),
-                    pos = pos,
-                    ref = ref,
-                    frq = frq)
-    print(1)
-    for chr in 2:nchr
-        a, p, r, f = tsbits("$dir/$chr.ts")
-        gt = vcat(gt, a)
-        append!(lmp, DataFrame(chr = Int8(chr),
-                               pos = p,
-                               ref = r,
-                               frq = f))
-       print(" $chr")
-    end
-    println()
-    @info "  - writing haplotypes to the disk"
+    @info "Merge the $nchr ts files of pop $name in $dir to a xy file:"
+    nhp = 0
+    lmp = DataFrame(chr = Int8[], pos = Int32[], ref = Char[], alt = Char[],
+                    frq = Float64[])
     open("$dir/$name.xy", "w") do io
-        hdr = XY.header()
-        write(io, Ref(hdr), Ref(size(gt)))
-        hp = 0
-        for i in eachcol(gt)
-            hp += 1
-            hp % 100 == 0 && print(" $hp")
-            write(io, Int8.(i))
+        hdr = XY.header(major = 1)
+        write(io, Ref(hdr), [0, 0])
+        for chr in 1:nchr
+            ts = tskit.load("$dir/$chr.ts")
+            gt = ts.genotype_matrix()
+            nlc, nhp = size(gt)
+            pos = Int32.(ts.tables.sites.position)
+            frq = mean(gt, dims = 2)
+            vld = Vector{Bool}(undef, nlc)
+            alt = zeros(Int8, nlc)
+            for v in ts.variants()
+                ilc = v.site.id + 1
+                vld[ilc] = length(v.alleles) == 2
+                alt[ilc] = v.alleles[2][1]
+                write(io, Int8.(gt[ilc, :]))
+            end
+            append!(lmp, DataFrame(chr = Int8(chr),
+                                   pos = pos[vld],
+                                   ref = ts.tables.sites.ancestral_state[vld],
+                                   alt = alt[vld],
+                                   frq = frq[vld]))
+            print(" $chr")
         end
     end
     println()
-    serialize("$dir/name.lmp", lmp)
+    XY.dim!("$dir/$name.xy", nhp, size(lmp, 1))
+    serialize("$dir/$name.lmp", lmp)
 end
 
 """
@@ -86,10 +104,15 @@ function tsbits(tsf::AbstractString, hps::Vector{Int}, maf::Float64)
         vld[i] = maximum(gt[i, :]) == 1
         frq[i] = mean(gt[i, :])
     end
+    alt = Int8[]
+    for v in ts.variants()
+        push!(alt, Int8(v.alleles[2][1]))
+    end
     vld = vld .&& frq .> maf .&& frq .< 1. - maf
     (Bool.(gt[vld, :]),
      Int32.(ts.tables.sites.position[vld]),
      Char.(ts.tables.sites.ancestral_state[vld]),
+     Char.(alt[vld]),
      frq[vld]
     )
 end
@@ -100,6 +123,9 @@ end
 
 Sample `nid` individuals from the haplotypes in `dir` and save the sample `xy`
 and `lmp` files into directory `dst`.
+
+## Todo
+- Parallelize TS reading later.
 """
 function sample2xy(dir::AbstractString, dst::AbstractString,
     nid::Int, nlc::Int...; maf = 0.)
@@ -111,21 +137,24 @@ function sample2xy(dir::AbstractString, dst::AbstractString,
         throw(ArgumentError("Invalid argument(set)"))
     
     @info "  - Sample $nid ID with $nlc loci and MAF $maf from $dir:"
-    ids = sort(shuffle(1:tid)[1:nid]) # sample IDs
+    ids = shuffle(1:tid)[1:nid] # sample IDs
     hps = sort([2ids .- 1; 2ids])
+    # parallelize below later
     nchr = sum(.!isnothing.(match.(r"ts$", readdir(dir))))
-    gt, pos, ref, frq = tsbits("$dir/1.ts", hps, maf)
+    gt, pos, ref, alt, frq = tsbits("$dir/1.ts", hps, maf)
     lmp = DataFrame(chr = Int8(1),
                     pos = pos,
                     ref = ref,
+                    alt = alt,
                     frq = frq)
     print(1)
     for chr in 2:nchr
-        a, p, r, f = tsbits("$dir/$chr.ts", hps, maf)
+        a, p, r, alt, f = tsbits("$dir/$chr.ts", hps, maf)
         gt = vcat(gt, a)
         append!(lmp, DataFrame(chr = Int8(chr),
                                pos = p,
                                ref = r,
+                               alt = alt,
                                frq = f))
         print(" $chr")
     end

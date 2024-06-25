@@ -25,10 +25,10 @@ function dosblup(;
 
     # Prepare a base population
     if !isfile("$base/desc.txt")
-        sim_base(species, base)
+        ts_base(species, base)
     else
         desc = readlines("$base/desc.txt")
-        parse(Int, desc[2]) < species.nid || desc[1] ≠ species.name && sim_base(cattle, baseDir)
+        parse(Int, desc[2]) < species.nid || desc[1] ≠ species.name && ts_base(cattle, baseDir)
     end
     sname = desc[1]
     schemes = [aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup]
@@ -42,7 +42,7 @@ function dosblup(;
         @info "==========> Repetition: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        sample_founder(base, test, plan.noff, nchp, nref, trait)
+        sample_ts(base, test, plan.noff, nchp, nref, trait)
         for ext in ["ped", "lmp"]
             mv("$test/$sname.$ext", "$test/founder.$ext", force=true)
         end
