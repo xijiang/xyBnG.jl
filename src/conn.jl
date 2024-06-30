@@ -6,7 +6,7 @@ using Statistics
 using xyBnG.XY
 
 include("conn/tskit.jl")
-include("conn/xy2vcf.jl")
+include("conn/vcf.jl")
 include("conn/macs.jl")
 
 end # module Conn

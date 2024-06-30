@@ -1,7 +1,7 @@
 function dosblup(;
         data = "rst",
-        baseDir = "base",
-        testDir = "allschmes",
+        baseDir = "tskit",
+        testDir = "cattle",
         species = Cattle(5_000),
         trait = Trait("milk", 0.25, 10000; sex = 0),
         nchp = 50_000,
@@ -31,6 +31,7 @@ function dosblup(;
         parse(Int, desc[2]) < species.nid || desc[1] ≠ species.name && ts_base(cattle, baseDir)
     end
     sname = desc[1]
+    fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
     schemes = [aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup]
     lbls = ["aaocs", "iiocs", "iidos", "ggocs", "agocs", "igocs", "gblup", "ablup", "iblup"]
     F0 = 0.027
@@ -42,12 +43,9 @@ function dosblup(;
         @info "==========> Repetition: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        sample_ts(base, test, plan.noff, nchp, nref, trait)
-        for ext in ["ped", "lmp"]
-            mv("$test/$sname.$ext", "$test/founder.$ext", force=true)
-        end
-        uniq("$test/$sname.xy", "$test/founder.xy")
-        rm("$test/$sname.xy", force=true)
+        sample_xy(fxy, fmp, test, plan.noff, maf, nchp, nref, trait)
+        mv("$test/founder.xy", "$test/snp.xy", force=true)
+        uniq("$test/snp.xy", "$test/founder.xy")
         lmp = deserialize("$test/founder.lmp")
 
         # The starting point: random selection

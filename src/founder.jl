@@ -2,7 +2,9 @@ module Founder
 
 using DataFrames
 using Distributions
+using LinearAlgebra
 using Mmap
+using Random
 using Serialization
 using xyBnG.Conn.TS
 using xyBnG.XY
@@ -182,15 +184,93 @@ function macs_base(nid::Int, dir::AbstractString)
     println()
 end
 
-function sample_xy(bdir::AbstractString, fxy::AbstractString,
-    tdir::AbstractString, nid::Int, maf::Float64,
-    nchp::Int, nref::Int, trts::Trait...)
-    isdir(bdir) || error("Base directory $bdir not exists")
-    #name = readline("$dir/desc.txt")
-    #lmp = deserialize("$dir/founder.lmp")
-    #ped = DataFrame(id = Int32.(1:n),
-    #                sire = Int32(0),
-    #                dam = Int32(0),
+"""
+    add_bool!(lmp::DataFrame, name::AbstractString, pool::AbstractVector{Int}, nspl::Int)
+Sample `nspl` loci from `pool` and add them to `lmp` with name `name`. The loci
+are added to ``Set`` `out`. Return the loci sampled.
+"""
+function add_bool!(lmp::DataFrame,
+    name::AbstractString, 
+    pool::AbstractVector{Int},
+    nspl::Int)
+    loci = sort(shuffle(pool)[1:nspl])
+    lmp[!, name] .= false
+    lmp[!, name][loci] .= true
+    loci
+end
+
+"""
+    sample_xy(fxy::AbstractString, fmp::AbstractString, tdir::AbstractString, nid::Int, maf::Float64, nchp::Int, nref::Int, trts::Trait...)
+Sample a founder from a SNP file `fxy` and a linkage map `fmp` into `tdir`. The
+founder has `nid` ID, `maf` minor allele frequency, `nchp` chip SNP, `nref`
+reference loci, and `trts` traits.
+
+Note: ID are sampled first. It is better to read the genotype sequentially on a
+spinning disk. Hence the SNP file needs to be loci majored.
+"""
+function sample_xy(fxy::AbstractString, fmp::AbstractString,
+                   tdir::AbstractString, nid::Int, maf::Float64,
+                   nchp::Int, nref::Int, trts::Trait...)
+    isfile(fxy) && isfile(fmp) || error("Files $fxy or $fmp not found")
+    isdir(tdir) || mkpath(tdir)
+    msnp = maximum((nchp, nref))
+    for t in trts
+        msnp < t.nQTL && (msnp = t.nQTL)
+    end
+    gt = XY.mapit(fxy)
+    nlc, nhp = size(gt)
+    aid = nhp ÷ 2 # available ID
+    nid ≤ aid || error("Number of ID to sampled ($nid) is larger than available ($aid)")
+    lmp = deserialize(fmp)
+    nrow(lmp) == nlc || error("Linkage map and SNP file do not match")
+
+    @info "  - Sampling ID"
+    hps = begin
+        tmp = shuffle(1:aid)[1:nid]
+        sort([2tmp .- 1; 2tmp])
+    end
+    sgt = Int8.(gt[:, hps])
+    frq = vec(mean(sgt, dims = 2)) # mean(gt, dims = 2) is a matrix !
+    
+    @info "  - Sampling SNP"
+    vld = (frq .> maf) .&& (frq .< 1. - maf)
+    msnp ≤ sum(vld) || error("Number of SNP required is larger than available")
+    pool, out = (1:nlc)[vld], Set{Int}()
+    chip = add_bool!(lmp, "chip", pool, nchp)
+    out = out ∪ chip
+    dark = add_bool!(lmp, "dark", pool, nref)
+    out = out ∪ dark
+    ped = DataFrame(id = Int32.(1:nid),
+                    sire = Int32(0),
+                    dam = Int32(0),
+                    sex = rand(Int8.(0:1), nid),
+                    grt = Int16(0),
+                    )
+    for t in trts
+        qtl = add_bool!(lmp, t.name, pool, t.nQTL)
+        out = out ∪ qtl
+        Q = sgt[qtl, 1:2:end] + sgt[qtl, 2:2:end]
+        D = Q .== 1
+        a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
+        norm_v(Q, a)
+        norm_v(D, d, σ = sqrt(t.vd))
+        lmp[!, "$(t.name)_a"] .= 0.
+        lmp[!, "$(t.name)_d"] .= 0.
+        lmp[!, "$(t.name)_a"][qtl] = a
+        lmp[!, "$(t.name)_d"][qtl] = d
+        ped[!, "tbv_$(t.name)"] = Q'a
+        ped[!, "ebv_$(t.name)"] .= -1e8
+        ped[!, "gt_$(t.name)"] = ped[!, "tbv_$(t.name)"] + D'd
+    end
+    out = sort(collect(out))
+    @info "  - Saving the sample to $tdir"
+    serialize("$tdir/founder.lmp", lmp[out, :])
+    serialize("$tdir/founder.ped", ped)
+    hdr = XY.header()
+    open("$tdir/founder.xy", "w") do io
+        write(io, Ref(hdr), [length(out), 2nid])
+        write(io, sgt[out, :])
+    end
 end
 
 end # module Founder

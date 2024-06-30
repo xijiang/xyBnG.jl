@@ -55,13 +55,20 @@ The header struct of an `xy` file. It consists of 8 `Int8` fields.
 - flus::Int8   # FLUS matrix type: full, lower triangle, upper triangle, symmetric(lower)
 - major::Int8  # 0 for loci majored, 1 for ID majored, or else
 - type::Int8   # element type of the matrix, determined by function _type
-- r::Int8
+- r::Int8      # reserved
 - u::Int8      # r and u are reserved
 It is by default as (x = 'x', y = 'y', v = ' ', flus = 'F', major = 0, type = 1, r = 0, u = 0).
 Or one can specify the fields by keyword arguments. For example,
 ```julia
 header(x = 'x', y = 'y', v = ' ', flus = 'F', major = 0, type = Int8, r = 0, u = 0)
 ```
+
+## Specification of `u`
+- 0 for SNP coding
+- 1 for IBD coding
+- 2 for genotype coding
+- 3 BitArray coding
+- 4+ else
 """
 mutable struct header
     x::Int8
@@ -70,7 +77,7 @@ mutable struct header
     flus::Int8   # FLUS matrix type: full, lower triangle, upper triangle, symmetric
     major::Int8  # 0 for loci majored, 1 for ID majored, or else
     type::Int8   # element type of the matrix, determined by function _type
-    r::Int8      # r is reserved
+    r::Int8      # 1 for BitArray. 0 for others
     u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding, 3+ else
     function header(;
         flus  = 'F',  # full, lower triangle, upper triangle, symmetric
@@ -140,11 +147,10 @@ function header(xy::AbstractString)
     (hdr.x == Int8('x') && hdr.y == Int8('y') && hdr.v == Int8(' ') && 0 < hdr.type ≤ _nvldtype) || return nothing
     nrows, ncols = dim(xy)
     nbyte = sizeof(_type(hdr.type))
-    return sz
     if hdr.flus == Int8('F')
-        sz == 24 + big(nrows) * ncols * nbyte || nothing
+        sz == 24 + nrows * ncols * nbyte || nothing
     else
-        sz == 24 + big(nrows) * (nrows + 1) ÷ 2 * nbyte || return nothing
+        sz == 24 + nrows * (nrows + 1) ÷ 2 * nbyte || return nothing
     end
     hdr
 end
@@ -544,8 +550,49 @@ Map the entire matrix in `fxy` and return the Matrix.
 function mapit(fxy::AbstractString)
     hdr = header(fxy)
     hdr.flus == Int8('F') || error("Only a full matrix is supported")
-    tp = _type(hdr.type)
     m, n = dim(fxy)
-    Mmap.mmap(fxy, Matrix{tp}, (m, n), 24)
+    if hdr.u == 3
+        Mmap.mmap(fxy, BitArray, (m, n), 24)
+    else
+        Mmap.mmap(fxy, Matrix{_type(hdr.type)}, (m, n), 24)
+    end
 end
+
+"""
+    tr8bit(fxy::AbstractString, bxy::AbstractString; bs = 2^16)
+Transpose the matrix in `fxy`, and write to `bxy` as BitArray. The problem is
+that reading `fxy` is not continuous. It takes a lot of time, espcielly when
+`fxy` is on a spinning disk. This function convert the matrix by block. The
+block is continous on disk. Hence it is dozens of times faster.
+
+This function is specially designed for merged data from `msprime`, or, `MaCS`,
+which are `n_Haplotyes x n_Loci` matrices of Int8. I don't do the type checking
+here. Users are not supposed to use this function directly.
+"""
+function tr8bit(fxy::AbstractString, bxy::AbstractString; bs = 2^16)
+    hdr, (nhp, nlc) = header(fxy), dim(fxy)
+    hdr.u = 3
+    m = mapit(fxy)
+    @info "  - Transposing $fxy to $bxy as a BitArray:"
+    t = nothing
+    open(bxy, "w") do io
+        write(io, Ref(hdr), [nlc, nhp])
+        if nlc ≤ bs
+            write(io, BitArray(m'))
+        else
+            t = BitArray(view(m, :, 1:bs)')
+            rg = collect(2bs:bs:nlc)
+            nlc ∈ rg || push!(rg, nlc)
+            left, cnt = bs + 1, 1
+            for right in rg
+                print("\r$(lpad(cnt, 12)) / $(length(rg)) blocks")
+                t = vcat(t, BitArray(view(m, :, left:right)'))
+                left, cnt = right + 1, cnt + 1
+            end
+            write(io, t)
+            println()
+        end
+    end
+end
+
 end # module XY

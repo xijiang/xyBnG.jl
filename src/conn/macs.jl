@@ -1,3 +1,12 @@
+module MaCS
+
+using DataFrames
+using Mmap
+using Serialization
+using Statistics
+using xyBnG.XY
+using xyBnG.xyTypes
+
 # ToDo: Modify according to the new xyBnG.XY module.
 """
     function make_macs(; tdir=pwd())
@@ -56,32 +65,36 @@ function read_macs(file, trans = false)
 end
 
 """
-    function macs2xy(dir; swap = false, keep = false)
+    function toxy(dir; swap = false, keep = false)
 Convert `MaCS` simulation results into `XY` format.  The `MaCS` files are of
 chr.chr-number and info.chr-number in `dir`.  The merged file are stored in
-`dir/../`. The genotypes are of `nID x nLoci`, or `header.t = 1`.
+`dir/macs.xy` and `dir/macs.lmp`. The genotypes are of BitArray of  `nLoci ×
+nID`, or `header.u = 3`.
 
 When `swap` is `true`, randomly swap the allele symbols of every other loci,
 i.e., 0 <--> 1. (2023-06-24)
 
 When `keep` is `true`, keep the original `MaCS` files.
 """
-function macs2xy(dir; swap = false, keep = false)
+function toxy(dir; swap = false, keep = false)
     isdir(dir) || error("$dir not exists")
     @info "  - Collect genotypes simulated by `MaCS` in $dir"
-    fxy = joinpath(dir, "macs.xy")
-    fmp = joinpath(dir, "macs.lmp")
+    fxy, fmd, fmp = joinpath.(dir, ["macs.xy", "mid.xy", "macs.lmp"])
 
     chrs = Int8[]
     for f in readdir(dir)
         occursin.(r"^chr", f) && push!(chrs, parse(Int8, split(f, '.')[2]))
     end
     sort!(chrs)           # chromosome number in integer, and in order
-    tmp = DataFrame(chr=Int8[], pos=Int64[], frq=Float64[])
+    lmp = DataFrame(chr = Int8[], pos = Int64[], ref = Char[], alt = Char[], 
+                    frq = Float64[])
     hdr = XY.header(major = 1) # ID majored
     tid, tlc = 0, 0
-    open(fxy, "w+") do io
-        write(io, Ref(hdr), [tlc, tid])
+    aa = (('A', 'C'), ('A', 'G'), ('A', 'T'), ('C', 'A'),
+          ('C', 'G'), ('C', 'T'), ('G', 'A'), ('G', 'C'),
+          ('G', 'T'), ('T', 'A'), ('T', 'C'), ('T', 'G'))
+    open(fmd, "w") do io
+        write(io, Ref(hdr), [tid, tlc])
         for c in chrs
             print(" $c")
             chr = joinpath(dir, "chr.$c")
@@ -95,11 +108,24 @@ function macs2xy(dir; swap = false, keep = false)
             tid  = size(gt, 1)
             tlc += size(gt, 2)
             write(io, gt)
-            append!(tmp, DataFrame(chr=c, pos=ps, frq=fq))
+            ref, alt = Char[], Char[]
+            for i in 1:size(gt, 2)
+                x = aa[rand(1:12)]
+                push!(ref, x[1])
+                push!(alt, x[2])
+            end
+            append!(lmp, DataFrame(chr=c, pos=ps, ref=ref, alt=alt, frq=fq))
         end
-        seek(io, 8)
-        write(io, [tid, tlc])
     end
-    serialize(fmp, tmp)
+    XY.dim!(fmd, tid, tlc)
+    serialize(fmp, lmp)
     println()
+    XY.tr8bit(fmd, fxy)
+    if !keep
+        rm.(joinpath(dir, "chr.") .* string.(chrs), force = true)
+        rm.(joinpath(dir, "log.") .* string.(chrs), force = true)
+        rm(fmd, force = true)
+    end
 end
+
+end # module MaCS

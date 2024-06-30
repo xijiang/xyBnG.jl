@@ -9,47 +9,14 @@ using Statistics
 using xyBnG.XY
 using xyBnG.xyTypes
 
-#=
 """
-    tsbits(tsf::AbstractString)
-
-Extract the haplotypes from a tskit file. Also return the positions, the
-reference alleles and the allele frequencies.
-"""
-function tsbits(tsf::AbstractString)
-    tskit = pyimport("tskit")
-    ts = tskit.load(tsf)
-    gt = Int8.(ts.genotype_matrix())
-    nlc = size(gt, 1)
-    vld = zeros(Bool, nlc)
-    frq = zeros(nlc)
-    Threads.@threads for i in 1:nlc
-        vld[i] = maximum(gt[i, :]) == 1
-        frq[i] = mean(gt[i, :])
-    end
-    alt = Int8[]
-    for v in ts.variants()
-        push!(alt, Int8(v.alleles[2][1]))
-    end
-    (gt[vld, :],
-     Int32.(ts.tables.sites.position[vld]),
-     Char.(ts.tables.sites.ancestral_state[vld]),
-     Char.(alt[vld]),
-     frq[vld])
-end
-=#
-
-"""
-    toxy(dir::AbstractString)
-
+    toxy(dir::AbstractString; keep = false)
 Merge the ts files in `dir` to a xy file, and serialized linkage map DataFrame.
-The `xy` file is ID majored, in line with the `macs` results. This is to ease 
-file appending and use less memory.
+The final `xy` file is locus majored, and as a BitArray.
 
-This is not necessary most of the time. I can sample the results directly from
-the tskit files.
+When `keep` is true, the xy file in bytes is preserved.
 """
-function toxy(dir::AbstractString)
+function toxy(dir::AbstractString; keep = false)
     tskit = pyimport("tskit")
     name = readline("$dir/desc.txt")
     nchr = sum(.!isnothing.(match.(r"ts$", readdir(dir))))
@@ -57,7 +24,7 @@ function toxy(dir::AbstractString)
     nhp = 0
     lmp = DataFrame(chr = Int8[], pos = Int32[], ref = Char[], alt = Char[],
                     frq = Float64[])
-    open("$dir/$name.xy", "w") do io
+    open("$dir/byte.xy", "w") do io
         hdr = XY.header(major = 1)
         write(io, Ref(hdr), [0, 0])
         for chr in 1:nchr
@@ -72,10 +39,10 @@ function toxy(dir::AbstractString)
                 ilc = v.site.id + 1
                 vld[ilc] = length(v.alleles) == 2
                 alt[ilc] = v.alleles[2][1]
-                write(io, Int8.(gt[ilc, :]))
+                vld[ilc] && write(io, Int8.(gt[ilc, :]))
             end
             append!(lmp, DataFrame(chr = Int8(chr),
-                                   pos = pos[vld],
+                                   pos = pos[vld] .+ 1,
                                    ref = ts.tables.sites.ancestral_state[vld],
                                    alt = alt[vld],
                                    frq = frq[vld]))
@@ -83,8 +50,10 @@ function toxy(dir::AbstractString)
         end
     end
     println()
-    XY.dim!("$dir/$name.xy", nhp, size(lmp, 1))
+    XY.dim!("$dir/byte.xy", nhp, size(lmp, 1))
     serialize("$dir/$name.lmp", lmp)
+    XY.tr8bit("$dir/byte.xy", "$dir/$name.xy")
+    keep || rm("$dir/byte.xy", force = true)
 end
 
 """

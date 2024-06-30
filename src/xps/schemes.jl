@@ -418,5 +418,5 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     serialize("$test/$bar.ped", ped)
 end
 
-function phaseibd(test, foo, bar, lmp, ngn, trait, fixed, plan)
+function mtrt_blup(test, foo, bar, lmp, ngn, trait, fixed, plan)
 end
