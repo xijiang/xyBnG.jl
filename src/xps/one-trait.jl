@@ -23,10 +23,10 @@ function one_trait(;
     @info "Prepare a founder population"
     println("\n")
 
-    isfile("$baseDir/desc.txt") || sim_base(cattle, baseDir)
+    isfile("$baseDir/desc.txt") || ts_base(cattle, baseDir)
     species = readline("$baseDir/desc.txt")
     if !isfile("$tstDir/founder.xy")
-        sample_founder(baseDir, tstDir, nid, nchp, nref, milk)
+        sample_ts(baseDir, tstDir, nid, nchp, nref, milk)
         for ext in ["ped", "lmp"]
             mv("$tstDir/$species.$ext", "$tstDir/founder.$ext", force=true)
         end

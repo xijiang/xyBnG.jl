@@ -57,6 +57,26 @@ struct Trait
     end
 end
 
+function Base.show(io::IO, trt::Trait)
+    println(io, "             Name: $(trt.name)")
+    println(io, "             Type: $(trt.type)")
+    println(io, "      Express age: $(trt.age)")
+    if trt.sex == 0
+        println(io, "     Expresses in: females")
+    elseif trt.sex == 1
+        println(io, "       Express in: males")
+    else
+        println(io, "       Express in: both sexes")
+    end
+    println(io, "      Express age: $(trt.age)")
+    println(io, "     Heritability: $(trt.h2)")
+    println(io, "          No. QTL: $(trt.nQTL)")
+    println(io, " TBV distribution: $(trt.da)")
+    println(io, "    Var dominance: $(trt.vd)")
+    println(io, "   Dominance dist: $(trt.dd)")
+    print(io,   "Higher the better: $(trt.rev)")
+end
+
 """
     function Trait(name, h2, nQTL; type = Float64, sex = 2, age = 1.,
             da = Normal(), vd = 0., dd = Normal())
@@ -86,6 +106,11 @@ struct Cattle <: Species
         nid ≤ 0 && error("nid must be positive")
         new(name, nid)
     end
+end
+
+function Base.show(io::IO, c::Cattle)
+    println(io, "     Name: $(c.name)")
+    print(  io, "Pop. size: $(c.nid)")
 end
 
 function Cattle(nid::Int)
@@ -118,6 +143,13 @@ mutable struct Plan
             error("mate must be in [:random, :hierarchical, :factorial]")
         new(npa, nma, noff, mate)
     end
+end
+
+function Base.show(io::IO, p::Plan)
+    println(io, "    No. sires: $(p.npa)")
+    println(io, "     No. dams: $(p.nma)")
+    println(io, "No. offspring: $(p.noff)")
+    print(  io, "       Mating: $(p.mate)")
 end
 
 # ToDo: Add a generic species

@@ -1,20 +1,21 @@
 """
-    a_tale_of_selection()
+    a_tale_of_selection(rst::AbstractString, base::AbstractString, tale::AbstractString)
 
 A tale of selection. Many of us are using script languages to do our work. A
 script also means the written text of a play, movie, or broadcast. It tells a
 story. Here is a story of selection, using my package of `xyBnG`.
 """
-function a_tale_of_selection()
+function a_tale_of_selection(rst::AbstractString, base::AbstractString, tale::AbstractString)
+    toxy = Conn.TS.toxy
     ########################################
     # Scenarios, or characters in the play
-    baseDir, tstDir = "rst/base", "rst/tale"
-    cattle = Cattle("cattle", 5_000)
+    baseDir, tstDir = "$rst/$base", "$rst/$tale"
+    cattle = Cattle(5_000)
     milk   = Trait("milk",   0.3, 10000; sex = 0, vd = 0.1)
     growth = Trait("growth", 0.5, 10000; sex = 2, vd = 0.2)
     nid, nchp, nref = 200, 50_000, 10_000
     nrng, nsel = 5, 10
-    plan = Plan(25, 50, 200) # default :hierarchical
+    plan = Plan(25, 50, nid) # default :hierarchical
     fixed = ["grt"]
 
     ########################################
@@ -35,7 +36,8 @@ function a_tale_of_selection()
     Simulate a cattle base population begins here."""
     tprintln(act)
 
-    isfile("$baseDir/desc.txt") || sim_base(cattle, baseDir)
+    isfile("$baseDir/desc.txt") || ts_base(cattle, baseDir)
+    isfile("$baseDir/$(cattle.name).xy") || toxy(baseDir) # merge to xy
     line = readlines("$baseDir/desc.txt")
     desc = md"""
     This population is named $(line[1]), and of $(line[2]) individuals
@@ -56,17 +58,18 @@ function a_tale_of_selection()
     This may take a while.
     """
     tprintln(act, "\n")
-    isfile("$tstDir/cattle.xy") || sample_founder(baseDir, tstDir, nid, nchp, nref, milk, growth)
-    for ext in ["ped", "lmp"]
-        cp("$tstDir/cattle.$ext", "$tstDir/founder.$ext", force=true)
-    end
-    uniq("$tstDir/cattle.xy", "$tstDir/founder.xy")
+    name = "$baseDir/$(cattle.name)"
+    maf = 0.0
+    sample_xy("$name.xy", "$name.lmp", tstDir, nid, maf, nchp, nref, milk, growth)
+
+    mv("$tstDir/founder.xy", "$tstDir/snp.xy", force = true)
+    uniq("$tstDir/snp.xy", "$tstDir/founder.xy")
     desc = md"""
     A total of $nid ID, or, $(2nid) haplotypes are sampled from the base population.
     These ID have $nchp chip SNPs, $nref reference/hidden SNPs, $(milk.nQTL) QTL
     for trait milk, and $(growth.nQTL) QTL for trait growth.
     The TBV variances of the traits are standardized to 1.0. Narrow sense
-    heritability of milk is $(milk.h2), and ``h^2`` of growth is $(growth.h2).
+    heritability of milk is ``h^2=`` $(milk.h2), and ``h^2`` of growth is $(growth.h2).
     """
     tprintln(desc, "\n")
 
@@ -76,37 +79,24 @@ function a_tale_of_selection()
     """
     tprintln(act, "\n")
     foo, bar = "founder", "rand"
-    for ext in ["ped", "xy"]
-        cp("$tstDir/$foo.$ext", "$tstDir/$bar.$ext", force = true)
-    end
     lmp = deserialize("$tstDir/$foo.lmp")
-    ped = deserialize("$tstDir/$bar.ped")
-    xy  = "$tstDir/$bar.xy"
-    for igrt in 1:nrng
-        println()
-        @info lpad("<--- Generation $igrt / $nrng --->", 40)
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
-        phenotype!(ids, ped, milk, growth)
-        Predict!(ids, ped, milk, growth)
-        ng = Select(ids, plan, ped, milk)
-        reproduce!(ng, ped, xy, lmp, milk, growth)
-    end
-    serialize("$tstDir/$bar.ped", ped)
+    randbrd(tstDir, foo, bar, lmp, nrng, milk, plan)
 
+    return
+    # ToDo: below needs rewrite. 
     ########################################
     act = md"""
     ## Act IV: Selection on milk and growth of the founder population
+
+    This selection is based on the random selection results.
     """
     tprintln("\n", act, "\n")
-    bar = "both"
-    for ext in ["ped", "xy"]
-        cp("$tstDir/$foo.$ext", "$tstDir/$bar.$ext", force = true)
-    end
-    ped = deserialize("$tstDir/$bar.ped")
+    foo, bar = "rand", "both"
+    cp("$tstDir/$foo.xy", "$tstDir/$bar.xy", force = true)
+    ped = deserialize("$tstDir/$foo.ped")
     xy  = "$tstDir/$bar.xy"
     wgt = Dict{String, Float64}("milk" => 0.6, "growth" => 0.4)
     for igrt in 1:nrng
-        println()
         @info lpad("<--- Generation $igrt / $nrng --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)
@@ -131,7 +121,6 @@ function a_tale_of_selection()
     ped = deserialize("$tstDir/$bar.ped")
     xy  = "$tstDir/$bar.xy"
     for igrt in 1:nsel
-        println()
         @info lpad("<--- Generation $igrt / $nsel --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)
@@ -158,7 +147,6 @@ function a_tale_of_selection()
     xy  = "$tstDir/$bar.xy"
     plan = Plan(25, 50, 200, mate = :random)
     for igrt in 1:nsel
-        println()
         @info lpad("<--- Generation $igrt / $nsel --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)

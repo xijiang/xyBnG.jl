@@ -2,20 +2,24 @@ module Founder
 
 using DataFrames
 using Distributions
+using LinearAlgebra
 using Mmap
+using Random
 using Serialization
 using xyBnG.Conn.TS
 using xyBnG.XY
 import xyBnG.xyTypes: Cattle, Species, Trait
 
 """
-    sim_base(pop::Cattle, dir::AbstractString)
+    ts_base(pop::Cattle, dir::AbstractString)
 
 Simulate a cattle population of name `pop.name`, and `pop.nid` ID in `dir`.
 
-Note: This is a simulation with the coancestor/backward simulator msprime.
+Note:
+- This is a simulation with the coancestor/backward simulator msprime.
+- Needs to have `tskit`, `msprime`, `scipy` and `stdpopsim` installed.
 """
-function sim_base(pop::Cattle, dir::AbstractString)
+function ts_base(pop::Cattle, dir::AbstractString)
     '~' ∈ dir && error("Character '~' is forbidden in dir")
     isdir(dir) || mkpath(dir)
     @info "Simulating a cattle population of name $(pop.name), and $(pop.nid) ID in $dir
@@ -33,11 +37,11 @@ function sim_base(pop::Cattle, dir::AbstractString)
 end
 
 """
-    sim_base(pop::Species, dir::AbstractString)
+    ts_base(pop::Species, dir::AbstractString)
 
 Default function to catch unsupported species.
 """
-function sim_base(pop::Species, dir::AbstractString)
+function ts_base(pop::Species, dir::AbstractString)
     @info "This species is not supported yet." # or as below
     # https://popsim-consortium.github.io/stdpopsim-docs/stable/api.html#sec-api-generic-models
 end
@@ -89,7 +93,13 @@ function uniq(ixy::T, oxy::T) where T <: AbstractString
     end
 end
 
-function sample_founder(bdir::AbstractString, tdir::AbstractString,
+"""
+    sample_ts(bdir::AbstractString, tdir::AbstractString, nid::Int, nchp::Int, nref::Int, trts::Trait...)
+Sample loci for a cattle population founder. The founder population is stored in
+`tdir` with `nid` ID, `nchp` chip SNP, and `nref` reference loci. The traits
+`trts` are used to sample the QTLs. The founder population is stored in `tdir`.
+"""
+function sample_ts(bdir::AbstractString, tdir::AbstractString,
     nid::Int, nchp::Int, nref::Int, trts::Trait...)
     nqtl = [t.nQTL for t in trts]
     name = readline("$bdir/desc.txt")
@@ -126,6 +136,141 @@ function sample_founder(bdir::AbstractString, tdir::AbstractString,
     serialize("$tdir/$name.ped", ped)
     serialize("$tdir/$name.lmp", lmp)
     ped
+end
+
+"""
+    macs_base(nid::Int, dir::AbstractString)
+Simulate a populatoin with `MaCS` into `dir`. The parameters are adapted from
+``https://academic.oup.com/g3journal/article/2/4/425/6026056?login=true#supplementary-data``.
+This simulation used the `Ne = 100` one.
+
+Note, the command `macs` needs to be in a searchable path with no space
+character in it. Files like `chr.1`, `log.1` are generated.
+"""
+function macs_base(nid::Int, dir::AbstractString)
+    isdir(dir) || mkpath(dir)
+    Ne = 100
+    μ = 2.5e-8 * (4Ne)
+    # [Chromosome length in bp](https://www.ncbi.nlm.nih.gov/projects/r_gencoll/ftp_service/nph-gc-ftp-service.cgi/?HistoryId=MCID_642d5d40ceff2e2c64293c60&QueryKey=1&ReleaseType=RefSeq&FileType=GENOME_FASTA&Flat=true)
+    chr = [158534110, 136231102, 121005158, 120000601, 120089316, 117806340,
+        110682743, 113319770, 105454467, 103308737, 106982474, 87216183,
+        83472345, 82403003, 85007780, 81013979, 73167244, 65820629, 63449741,
+        71974595, 69862954, 60773035, 52498615, 62317253, 42350435, 51992305,
+        45612108, 45940150, 51098607]
+    r = 1e-8 * 4Ne
+    # Scaled time
+    tm = [10, 25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000,
+        3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 40000, 60000,
+        80000, 100000, 200000, 400000, 600000, 800000] / (4Ne)
+    # Scaled population size
+    ps = [175, 200, 350, 500, 700, 820, 850, 900, 1000, 1100, 1275, 1300, 1200,
+        2000, 2500, 3000, 3200, 3500, 3800, 4000, 4200, 4500, 5456, 7367, 9278,
+        11190, 13101, 22658, 41772, 60886, 80000] / Ne
+    eN = ""
+    for i in 1:length(tm)
+        eN *= " -eN $(tm[i]) $(ps[i])"
+    end
+    macs = Sys.which("macs")
+    (isnothing(macs) || any(isspace.(collect(macs)))) && error("Command `macs` error")
+    @info "  - Simulating a cattle population with MaCS into $dir"
+    Threads.@threads for i in 1:length(chr)
+        print(" $i")
+        cmd = "$macs $(2nid) $(chr[i]) -t $μ -r $r" * eN
+        cmd = Cmd(convert(Vector{String}, split(cmd)))
+        run(pipeline(cmd,
+            stdout = "$dir/chr.$i",
+            stderr = "$dir/log.$i"))
+    end
+    println()
+end
+
+"""
+    add_bool!(lmp::DataFrame, name::AbstractString, pool::AbstractVector{Int}, nspl::Int)
+Sample `nspl` loci from `pool` and add them to `lmp` with name `name`. The loci
+are added to ``Set`` `out`. Return the loci sampled.
+"""
+function add_bool!(lmp::DataFrame,
+    name::AbstractString, 
+    pool::AbstractVector{Int},
+    nspl::Int)
+    loci = sort(shuffle(pool)[1:nspl])
+    lmp[!, name] .= false
+    lmp[!, name][loci] .= true
+    loci
+end
+
+"""
+    sample_xy(fxy::AbstractString, fmp::AbstractString, tdir::AbstractString, nid::Int, maf::Float64, nchp::Int, nref::Int, trts::Trait...)
+Sample a founder from a SNP file `fxy` and a linkage map `fmp` into `tdir`. The
+founder has `nid` ID, `maf` minor allele frequency, `nchp` chip SNP, `nref`
+reference loci, and `trts` traits.
+
+Note: ID are sampled first. It is better to read the genotype sequentially on a
+spinning disk. Hence the SNP file needs to be loci majored.
+"""
+function sample_xy(fxy::AbstractString, fmp::AbstractString,
+                   tdir::AbstractString, nid::Int, maf::Float64,
+                   nchp::Int, nref::Int, trts::Trait...)
+    isfile(fxy) && isfile(fmp) || error("Files $fxy or $fmp not found")
+    isdir(tdir) || mkpath(tdir)
+    msnp = maximum((nchp, nref))
+    for t in trts
+        msnp < t.nQTL && (msnp = t.nQTL)
+    end
+    gt = XY.mapit(fxy)
+    nlc, nhp = size(gt)
+    aid = nhp ÷ 2 # available ID
+    nid ≤ aid || error("Number of ID to sampled ($nid) is larger than available ($aid)")
+    lmp = deserialize(fmp)
+    nrow(lmp) == nlc || error("Linkage map and SNP file do not match")
+
+    @info "  - Sampling ID"
+    hps = begin
+        tmp = shuffle(1:aid)[1:nid]
+        sort([2tmp .- 1; 2tmp])
+    end
+    sgt = Int8.(gt[:, hps])
+    frq = vec(mean(sgt, dims = 2)) # mean(gt, dims = 2) is a matrix !
+    
+    @info "  - Sampling SNP"
+    vld = (frq .> maf) .&& (frq .< 1. - maf)
+    msnp ≤ sum(vld) || error("Number of SNP required is larger than available")
+    pool, out = (1:nlc)[vld], Set{Int}()
+    chip = add_bool!(lmp, "chip", pool, nchp)
+    out = out ∪ chip
+    dark = add_bool!(lmp, "dark", pool, nref)
+    out = out ∪ dark
+    ped = DataFrame(id = Int32.(1:nid),
+                    sire = Int32(0),
+                    dam = Int32(0),
+                    sex = rand(Int8.(0:1), nid),
+                    grt = Int16(0),
+                    )
+    for t in trts
+        qtl = add_bool!(lmp, t.name, pool, t.nQTL)
+        out = out ∪ qtl
+        Q = sgt[qtl, 1:2:end] + sgt[qtl, 2:2:end]
+        D = Q .== 1
+        a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
+        norm_v(Q, a)
+        norm_v(D, d, σ = sqrt(t.vd))
+        lmp[!, "$(t.name)_a"] .= 0.
+        lmp[!, "$(t.name)_d"] .= 0.
+        lmp[!, "$(t.name)_a"][qtl] = a
+        lmp[!, "$(t.name)_d"][qtl] = d
+        ped[!, "tbv_$(t.name)"] = Q'a
+        ped[!, "ebv_$(t.name)"] .= -1e8
+        ped[!, "gt_$(t.name)"] = ped[!, "tbv_$(t.name)"] + D'd
+    end
+    out = sort(collect(out))
+    @info "  - Saving the sample to $tdir"
+    serialize("$tdir/founder.lmp", lmp[out, :])
+    serialize("$tdir/founder.ped", ped)
+    hdr = XY.header()
+    open("$tdir/founder.xy", "w") do io
+        write(io, Ref(hdr), [length(out), 2nid])
+        write(io, sgt[out, :])
+    end
 end
 
 end # module Founder
