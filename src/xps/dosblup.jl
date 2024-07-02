@@ -32,15 +32,15 @@ function dosblup(;
     end
     sname = desc[1]
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
-    schemes = [aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup]
-    lbls = ["aaocs", "iiocs", "iidos", "ggocs", "agocs", "igocs", "gblup", "ablup", "iblup"]
+    schemes = (aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup)
+
     F0 = 0.027
 
     # Simulations
     for irpt in 1:nrpt
         tag = lpad(irpt, ndigits(nrpt), '0')
         println()
-        @info "==========> Repetition: $tag / $nrpt <=========="
+        @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
         sample_xy(fxy, fmp, test, plan.noff, maf, nchp, nref, trait)
@@ -50,15 +50,12 @@ function dosblup(;
 
         # The starting point: random selection
         randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan; ibd=true)
-        for i in 1:9
-            scheme = schemes[i]
-            lbl = lbls[i]
-            if i < 7 # OCS
-                scheme(test, "$tag-rand", "$tag-$lbl", lmp, nsel, trait, fixed, plan.noff, dF, F0)
-            else
-                scheme(test, "$tag-rand", "$tag-$lbl", lmp, nsel, trait, fixed, plan)
-            end
-            summary = Sum.xysum("$test/$tag-$lbl.ped", "$test/$tag-$lbl.xy", lmp, trait, nrng + 1)
+        for scheme in schemes
+            foo, bar = "$tag-rand", tag * string(func)
+            occursin("blup", bar) ?
+                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan) :
+                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan.noff, dF, F0)
+            summary = Sum.xysum("$test/$tag-$func.ped", "$test/$tag-$func.xy", lmp, trait, nrng + 1)
             Sum.savesum("$test/summary.ser", summary)
         end
         if !keep

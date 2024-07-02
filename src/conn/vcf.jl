@@ -7,19 +7,16 @@ have complicated VCF files, at least at the moment.
 """
 module vcf
 
-# to be removed
-using DataFrames, Mmap
-
-function commas(num::Integer)
-    str = string(num)
-    return replace(str, r"(?<=[0-9])(?=(?:[0-9]{3})+(?![0-9]))" => ",")
-end
-# to be removed
+using DataFrames
+using Mmap
+using Statistics
+import xyBnG.Util: commas
+using xyBnG.XY
 
 """
-    function dim(vcf::AbstractString)
-Find the dimensions of a VCF file.
-Returns the number of loci and the number of individuals.
+    dim(vcf::AbstractString)
+Find the dimensions of a VCF file. Returns the number of loci and the number of
+individuals.
 """
 function dim(vcf::AbstractString)
     @info "Counting loci and individuals in $vcf"
@@ -32,15 +29,15 @@ function dim(vcf::AbstractString)
                 continue
             end
             nlc += 1
-            nlc % 100_000 == 0 && print("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))")
+            nlc % 100_000 == 0 && print("\r\t", commas("n_ID = $nid; n_Loci = $nlc"))
         end
     end
-    println("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))\n")
+    println("\r\t", commas("n_ID = $nid; n_Loci = $nlc"))
     nlc, nid
 end
 
 """
-    function findnth(s::AbstractString, c::Union{AbstractString, AbstractChar}, n::Int)
+    findnth(s::AbstractString, c::Union{AbstractString,AbstractChar}, n::Int)
 Return the index of the first character of the nth occurrence of `c` in `s` and
 the number of occurrences before the return. If the nth `c` is not found, return
 `(nothing, i)`, where `i` is the number of accurances.
@@ -81,14 +78,15 @@ function line2v(line::AbstractString, av::AbstractVector{Int8}; sep='\t')
 end
 
 """
-    function toxy(vcf::AbstractString, xy::AbstractString)
-Convert a VCF file into a `xy-hap.xy` and `xy-map.ser`.
-It deals with 10k loci parallelly at a time.
+    toxy(vcf::AbstractString, fxy::AbstractString; nln=10000)
+Convert a VCF file into a `fxy.xy` and `fxy.lmp`. It deals with 10k loci
+parallelly at a time. It also only deals with SNP VCF files. The SNPs should
+have maximal 2 alleles only.
 """
-function toxy(vcf::AbstractString, xy::AbstractString; nln=10000)
+function toxy(vcf::AbstractString, fxy::AbstractString; nln=10000)
     nlc, nid = dim(vcf)
-    hdr = XY.header(u = 3)
-    
+    hdr = XY.header(major=1)
+    return hdr
     mmp = DataFrame(chr=zeros(Int8, nlc), pos=zeros(Int32, nlc), frq=zeros(nlc)) # map
     write(xy * "-hap.xy", Ref(hdr))
 
@@ -125,7 +123,7 @@ function toxy(vcf::AbstractString, xy::AbstractString; nln=10000)
 end
 
 """
-    function firstline(vcf::AbstractString)
+    firstline(vcf::AbstractString)
 A temporary function to find the first line of a VCF file that is not a header.
 """
 function firstline(vcf::AbstractString)
@@ -137,7 +135,7 @@ function firstline(vcf::AbstractString)
 end
 
 
-function zvcf2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
+function z2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
     @info "Counting loci and individuals in $zvcf"
     nlc, nid = 0, 0
     open(`pigz -dc $zvcf`, "r+") do ii
@@ -185,22 +183,6 @@ function zvcf2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
         end
         println('\n')
         serialize("$xy-map.ser", mmp)
-    end
-end
-
-function tovcf(xy::AbstractMatrix, lmp::DataFrame, vcf::AbstractString)
-    open(vcf, "w") do io
-        println(io, "##fileformat=VCFv4.2")
-        println(io, "##source=xy2vcf.jl")
-        println(io, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">")
-        println(io, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE")
-        for (i, row) in enumerate(eachrow(xy))
-            chrom = row[1]
-            pos = row[2]
-            ref = row[3]
-            alt = row[4]
-            println(io, "$chrom\t$pos\t.\t$ref\t$alt\t.\t.\t.\tGT\t0/1")
-        end
     end
 end
 
