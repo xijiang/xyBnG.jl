@@ -418,5 +418,28 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     serialize("$test/$bar.ped", ped)
 end
 
-function mtrt_blup(test, foo, bar, lmp, ngn, trait, fixed, plan)
+function ppocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    @info "  - Directional selection AABLUP for $ngn generations"
+    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
+    cp("$test/$foo.xy", xy, force=true)
+    for ign in 1:ngn
+        print(" $ign")
+        ids = view(ped, ped.grt .== ped.grt[end], :id)
+        phenotype!(ids, ped, trait)
+        Conn.xy.tovcf(xy, "$test/$bar.vcf", lmp)
+
+        # new lines
+        run(`phasedibd_julia.R $test $bar.vcf ibd.bin`)
+        G = zeros(nrow(ped), nrow(ped))
+        read!("$test/ibd.bin", G)
+        # new lines end here
+
+        giv = inv(G)
+        Predict!(ids, ped, fixed, giv, trait)
+        g22 = G[ids, ids]
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        reproduce!(ng, ped, xy, lmp, trait)
+    end
+    println()
+    serialize("$test/$bar.ped", ped)
 end
