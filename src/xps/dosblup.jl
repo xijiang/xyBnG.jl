@@ -51,11 +51,11 @@ function dosblup(;
         # The starting point: random selection
         randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan; ibd=true)
         for scheme in schemes
-            foo, bar = "$tag-rand", tag * string(func)
+            foo, bar = "$tag-rand", tag * '-' * string(scheme)
             occursin("blup", bar) ?
                 scheme(test, foo, bar, lmp, nsel, trait, fixed, plan) :
                 scheme(test, foo, bar, lmp, nsel, trait, fixed, plan.noff, dF, F0)
-            summary = Sum.xysum("$test/$tag-$func.ped", "$test/$tag-$func.xy", lmp, trait, nrng + 1)
+            summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait, nrng + 1)
             Sum.savesum("$test/summary.ser", summary)
         end
         if !keep
