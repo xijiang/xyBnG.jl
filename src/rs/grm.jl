@@ -1,5 +1,5 @@
 """
-    grm(gt)
+    grm(gt::AbstractArray; p::Union{Bool, AbstractVector{Float64}} = false)
 
 Given the genotypes of `Matrix{Int8}`, this function calculate the genomic 
 relationship matrix `GRM`. If the matrix is too big, the content will be 
@@ -14,11 +14,16 @@ continuously in the `gt` columns.
 
 If a `δ`, e.g., `δ = 0.01`, to the diagonals, you have to do this after this
 function.
+
+Important update: the function now can handle the case when the allele
+frequencies are given.  In this case, the `p` must be a vector of allele
+frequencies
 """
-function grm(gt::AbstractArray)
-    p = mean(gt, dims = 2) ./ 2 # allele frequencies
-    d = 2(1 .- p)'p             # the denominator
+function grm(gt::AbstractArray; p::Union{Bool, AbstractVector{Float64}} = false)
     nlc, nid = size(gt)
+    length(p) ≠ nlc && (p = mean(gt, dims = 2) / 2) # allele frequencies
+    #p = mean(gt, dims = 2) / 2 # allele frequencies
+    d = 2(1 .- p)'p             # the denominator
     mem = memavail() * 99 ÷ 100 # not all available memory
     gmt = nid^2 * 8             # memory by G
     zmt = nid * nlc * 8         # memory by Z
@@ -74,9 +79,22 @@ Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at
 `loci`.
 """
 function grm(xy::AbstractString, loci)
-    hdr, dim = XY.header(xy), XY.dim(xy)
+    hdr = XY.header(xy)
     hap = XY.mapit(xy)
     gt = hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
         isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
     grm(gt)
+end
+
+"""
+    grm(xy::AbstractArray, loci, frq)
+Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at
+`loci` with allele frequencies `frq` of size(gt, 1).
+"""
+function grm(xy::AbstractString, loci, frq)
+    hdr = XY.header(xy)
+    hap = XY.mapit(xy)
+    gt = hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
+         isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
+    grm(gt, p = frq[loci])
 end

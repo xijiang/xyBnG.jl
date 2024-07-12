@@ -6,7 +6,7 @@ Some utility functions.
 ## Provides
 - `function memavail()`
 - `function blksz(n::Int, m::Int)`
-- `function commas(num::Integer)`
+- `function commas(num::T) where T <: Integer`
 - `function Ceiling(; nQTL = 1000, nRepeat = 1000, ad = Normal(), qd =
   Beta(0.75, 0.75))`
 """
@@ -45,11 +45,11 @@ function blksz(n::Int, m::Int)
 end
 
 """
-    commas(num::Integer)
+    commas(num::T)
 
 Display `num` with commas.
 """
-function commas(num::Integer)
+function commas(num)
     str = string(num)
     return replace(str, r"(?<=[0-9])(?=(?:[0-9]{3})+(?![0-9]))" => ",")
 end

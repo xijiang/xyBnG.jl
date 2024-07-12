@@ -8,5 +8,6 @@ using xyBnG.XY
 include("conn/tskit.jl")
 include("conn/vcf.jl")
 include("conn/macs.jl")
+include("conn/xy.jl")
 
 end # module Conn

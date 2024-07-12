@@ -7,19 +7,16 @@ have complicated VCF files, at least at the moment.
 """
 module vcf
 
-# to be removed
-using DataFrames, Mmap
-
-function commas(num::Integer)
-    str = string(num)
-    return replace(str, r"(?<=[0-9])(?=(?:[0-9]{3})+(?![0-9]))" => ",")
-end
-# to be removed
+using DataFrames
+using Mmap
+using Statistics
+import xyBnG.Util: commas
+using xyBnG.XY
 
 """
-    function dim(vcf::AbstractString)
-Find the dimensions of a VCF file.
-Returns the number of loci and the number of individuals.
+    dim(vcf::AbstractString)
+Find the dimensions of a VCF file. Returns the number of loci and the number of
+individuals.
 """
 function dim(vcf::AbstractString)
     @info "Counting loci and individuals in $vcf"
@@ -32,15 +29,27 @@ function dim(vcf::AbstractString)
                 continue
             end
             nlc += 1
-            nlc % 100_000 == 0 && print("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))")
+            nlc % 100_000 == 0 && print("\r\t", commas("n_ID = $nid; n_Loci = $nlc"))
         end
     end
-    println("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))\n")
+    println("\r\t", commas("n_ID = $nid; n_Loci = $nlc"))
     nlc, nid
 end
 
 """
-    function findnth(s::AbstractString, c::Union{AbstractString, AbstractChar}, n::Int)
+    firstline(vcf::AbstractString)
+A temporary function to find the first line of a VCF file that is not a header.
+"""
+function firstline(vcf::AbstractString)
+    open(vcf, "r") do io
+        for line in eachline(io)
+            line[1] ≠ '#' && return line
+        end
+    end
+end
+
+"""
+    findnth(s::AbstractString, c::Union{AbstractString,AbstractChar}, n::Int)
 Return the index of the first character of the nth occurrence of `c` in `s` and
 the number of occurrences before the return. If the nth `c` is not found, return
 `(nothing, i)`, where `i` is the number of accurances.
@@ -59,15 +68,17 @@ end
 
 """
     function line2v(line::AbstractString, av::Vector{Int8}; sep = '\t')
-Convert a line of VCF file into a tuple of chromosome, position, frequency of
-allele 1. Write the alternative alleles into a vector of Int8.
+Convert a line of VCF file into a tuple of chromosome, position, ref and alt.
+Also the frequency of allele 1. Write the alternative alleles into a vector of
+Int8.
 """
 function line2v(line::AbstractString, av::AbstractVector{Int8}; sep='\t')
-    f, _ = findnth(line, sep, 1)
-    chr = parse(Int8, line[1:f-1])
-    f1, _ = findnth(line, sep, 2)
-    pos = parse(Int32, line[f+1:f1-1])
-
+    f, _ = findnth(line, sep, 5)
+    txt = split(line[1:f])
+    chr = parse(Int8, txt[1])
+    pos = parse(Int32, txt[2])
+    ref = txt[4][1]
+    alt = txt[5][1]
     f, _ = findnth(line, sep, 9)
     n, k = length(line), 0
     for i in f+1:4:n
@@ -77,33 +88,49 @@ function line2v(line::AbstractString, av::AbstractVector{Int8}; sep='\t')
     end
     av .-= 48  # Int('0') = 48
 
-    return chr, pos, mean(av)
+    return chr, pos, ref, alt, mean(av)
 end
 
 """
-    function toxy(vcf::AbstractString, xy::AbstractString)
-Convert a VCF file into a `xy-hap.xy` and `xy-map.ser`.
-It deals with 10k loci parallelly at a time.
+    toxy(vcf::AbstractString, sxy::AbstractString; nln=10000)
+Convert a VCF file into a `sxy.xy` and `sxy.lmp`. It deals with 10k loci
+parallelly at a time. It also only deals with SNP VCF files. The SNPs should
+have maximal 2 alleles only. Fields in the VCF file should be separated by tabs,
+one and only one between two fields.
 """
-function toxy(vcf::AbstractString, xy::AbstractString; nln=10000)
+function toxy(vcf::AbstractString, sxy::AbstractString; nln=10000)
     nlc, nid = dim(vcf)
-    hdr = XY.header(u = 3)
-    
-    mmp = DataFrame(chr=zeros(Int8, nlc), pos=zeros(Int32, nlc), frq=zeros(nlc)) # map
-    write(xy * "-hap.xy", Ref(hdr))
+    hdr = XY.header(major=1)
+    lmp = DataFrame(chr=zeros(Int8, nlc), pos=zeros(Int32, nlc),
+                    ref = 'a', alt = 't', frq=0.0) # map
+    write(sxy * ".xy", Ref(hdr), [2nid, nlc])
 
     # Create blocks for parallel processing
-    bs = blksz(nlc, nln)
-    blks = collect(bs:bs:nlc)
+    blks = collect(nln:nln:nlc)
     blks[end] < nlc && push!(blks, nlc)
-
+    
     @info "Processing the genotypes:"
+    open(sxy * ".xy", "w") do oo
+        write(oo, Ref(hdr), [2nid, nlc])
+        iloc, iblk, buf = 0, 1, IOBuffer()
+        gt = zeros(Int8, 2nid, nln)
+        for line in eachline(vcf)
+            line[1] == '#' && continue
+            ilc += 1
+            println(buf, line)
+            if iloc == blks[iblk]
+                loci = String(take!(buf))
+                iblk += 1
+            end
+        end     # skip header
+    end
+    return
     open(vcf, "r") do ii
         for line in eachline(ii)
             line[2] ≠ '#' && break
         end     # skip header
         ilc, jlc, ibk, buf = 0, 0, 1, String[]
-        open(xy * "-hap.xy", "r+") do oo
+        open(sxy * ".xy", "r+") do oo
             gt = Mmap.mmap(oo, Matrix{Int8}, (nlc, 2nid), 24)
             for line in eachline(ii)
                 jlc += 1
@@ -121,23 +148,10 @@ function toxy(vcf::AbstractString, xy::AbstractString; nln=10000)
         end
     end
     println('\n')
-    serialize("$xy-map.ser", mmp)
+    serialize("$sxy.lmp", lmp)
 end
 
-"""
-    function firstline(vcf::AbstractString)
-A temporary function to find the first line of a VCF file that is not a header.
-"""
-function firstline(vcf::AbstractString)
-    open(vcf, "r") do io
-        for line in eachline(io)
-            line[1] ≠ '#' && return line
-        end
-    end
-end
-
-
-function zvcf2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
+function z2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
     @info "Counting loci and individuals in $zvcf"
     nlc, nid = 0, 0
     open(`pigz -dc $zvcf`, "r+") do ii
@@ -185,22 +199,6 @@ function zvcf2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
         end
         println('\n')
         serialize("$xy-map.ser", mmp)
-    end
-end
-
-function tovcf(xy::AbstractMatrix, lmp::DataFrame, vcf::AbstractString)
-    open(vcf, "w") do io
-        println(io, "##fileformat=VCFv4.2")
-        println(io, "##source=xy2vcf.jl")
-        println(io, "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">")
-        println(io, "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE")
-        for (i, row) in enumerate(eachrow(xy))
-            chrom = row[1]
-            pos = row[2]
-            ref = row[3]
-            alt = row[4]
-            println(io, "$chrom\t$pos\t.\t$ref\t$alt\t.\t.\t.\tGT\t0/1")
-        end
     end
 end
 

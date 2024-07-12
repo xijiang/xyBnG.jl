@@ -208,4 +208,66 @@ function savesum(file::AbstractString, df::DataFrame)
     end
 end
 
+"""
+    corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
+Calculate the correlation between the off-diagonal elements of the `A`, `G`, and
+`IBD` matrices. G and IBD are calculated with the chip loci incidated in the
+`DataFrame` stored in the `fmp` file.
+"""
+function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
+    ped = deserialize(fpd)
+    nid = size(ped, 1)
+    lmp = deserialize(fmp)
+    @info "  - Calculating A"
+    A = RS.nrm(ped)
+    mat = XY.mapit(fxy)
+    gt = isodd.(mat[:, 1:2:end]) + isodd.(mat[:, 2:2:end])
+    mat = nothing
+    @info "  - Calculating G"
+    G = RS.grm(gt)
+    @info "  - Calculating IBD matrix"
+    M = RS.irm(fxy, lmp.chip, 1:nid)
+    @info "  - Calculating correlations across all generations"
+    x = y = z = x2 = y2 = z2 = xy = xz = yz = 0.0
+    for i in 1:nid
+        for j in 1:i-1
+            x += A[i, j]
+            y += G[i, j]
+            z += M[i, j]
+            x2 += A[i, j]^2
+            y2 += G[i, j]^2
+            z2 += M[i, j]^2
+            xy += A[i, j] * G[i, j]
+            xz += A[i, j] * M[i, j]
+            yz += G[i, j] * M[i, j]
+        end
+    end
+    n = nid * (nid - 1) / 2
+    c1, c2, c3 =  (xy - x * y / n) / sqrt((x2 - x^2 / n) * (y2 - y^2 / n)),
+                  (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
+                  (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
+    @info "  - Calculating correlations of the generations"
+    id = ped.id[ped.grt .== ped.grt[end]]
+    x = y = z = x2 = y2 = z2 = xy = xz = yz = 0.0
+    for i in id
+        for j in id
+            j == i && break
+            x += A[i, j]
+            y += G[i, j]
+            z += M[i, j]
+            x2 += A[i, j]^2
+            y2 += G[i, j]^2
+            z2 += M[i, j]^2
+            xy += A[i, j] * G[i, j]
+            xz += A[i, j] * M[i, j]
+            yz += G[i, j] * M[i, j]
+        end
+    end
+    n = length(id) * (length(id) - 1) / 2
+    c4, c5, c6 =  (xy - x * y / n) / sqrt((x2 - x^2 / n) * (y2 - y^2 / n)),
+                  (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
+                  (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
+    return [c1, c2, c3, c4, c5, c6]
+end
+
 end # module Sum
