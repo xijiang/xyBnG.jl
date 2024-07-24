@@ -12,9 +12,9 @@ function nrm(ped::DataFrame; m = 30_000)
     A = zeros(N, N) + I(N)
     for (id, sire, dam) in eachrow(select(ped, :id, :sire, :dam))
         sire * dam ≠ 0 && (A[id, id] += 0.5A[sire, dam])
-        for jd in 1:id-1
-            sire ≠ 0 && (A[id, jd]  = 0.5A[jd, sire])
-            dam  ≠ 0 && (A[id, jd] += 0.5A[jd, dam])
+        for jd = 1:id-1
+            sire ≠ 0 && (A[id, jd] = 0.5A[jd, sire])
+            dam ≠ 0 && (A[id, jd] += 0.5A[jd, dam])
             A[jd, id] = A[id, jd]
         end
     end
@@ -66,7 +66,7 @@ end
 
 function fkin()
     kin = Dict((Int32(0), Int32(0)) => 0.0)
-    
+
     function ck(ped, i::T, j::T) where {T<:Integer} # calculate kinship
         i == 0 || j == 0 && return 0.0
         m, n = i ≤ j ? (i, j) : (j, i)

@@ -25,21 +25,21 @@ function TM1997(ped, A, K)
     nid, itr = nrow(ped), 0
     size(A, 1) == nid || error("A and ped do not match")
     id = 1:nid
-    
+
     while true
         itr += 1
         u = ped.idx[id]
         Q = [ped.sex[id] .== 1 ped.sex[id] .== 0]
-        Ai   = inv(A[id, id])
-        QAQ  = Q'Ai * Q
+        Ai = inv(A[id, id])
+        QAQ = Q'Ai * Q
         QAQi = inv(QAQ)
         f1 = u' * (Ai - Ai * Q * QAQi * Q'Ai) * u # numerator
         f2 = 4K - sum(QAQi) # denominator
         f2 ≤ 0 && return 0.5Ai * Q * QAQi * ones(2) # can't meet the constraint
         f1 = max(f1, 1e-10)
         λ₀ = sqrt(f1 / f2)
-        λ  = QAQi * (Q'Ai * u .- λ₀)
-        c  = Ai * (u - Q * λ) / (2λ₀)
+        λ = QAQi * (Q'Ai * u .- λ₀)
+        c = Ai * (u - Q * λ) / (2λ₀)
         ix = findall(c .> 0) # indices of ID of next round
         if length(ix) == length(id)
             rc = zeros(nid)
@@ -57,9 +57,9 @@ This is a wrapper for Theo's program with equal contribution.
 function TM2024(ped, A, K)
     ncd = size(A, 1) # number of candidates
     nsire = sum(ped.sex)
-    ndam  = ncd - nsire
+    ndam = ncd - nsire
     @debug nsire, ndam, ncd
-    DOSop(ped.idx, A, zeros(ncd), 1., K, [nsire, ndam], ped.sex .+ 1) / 2.0
+    DOSop(ped.idx, A, zeros(ncd), 1.0, K, [nsire, ndam], ped.sex .+ 1) / 2.0
 end
 
 """
@@ -72,6 +72,6 @@ function konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
     if ong
         2dF
     else
-        2(1 - (1 - k₀) * (1 - dF) ^ (igrt + 1))
+        2(1 - (1 - k₀) * (1 - dF)^(igrt + 1))
     end
 end

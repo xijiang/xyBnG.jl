@@ -22,12 +22,12 @@ function toxy(dir::AbstractString; keep = false)
     nchr = sum(.!isnothing.(match.(r"ts$", readdir(dir))))
     @info "Merge the $nchr ts files of pop $name in $dir to a xy file:"
     nhp = 0
-    lmp = DataFrame(chr = Int8[], pos = Int32[], ref = Char[], alt = Char[],
-                    frq = Float64[])
+    lmp =
+        DataFrame(chr = Int8[], pos = Int32[], ref = Char[], alt = Char[], frq = Float64[])
     open("$dir/byte.xy", "w") do io
         hdr = XY.header(major = 1)
         write(io, Ref(hdr), [0, 0])
-        for chr in 1:nchr
+        for chr = 1:nchr
             ts = tskit.load("$dir/$chr.ts")
             gt = ts.genotype_matrix()
             nlc, nhp = size(gt)
@@ -41,11 +41,16 @@ function toxy(dir::AbstractString; keep = false)
                 alt[ilc] = v.alleles[2][1]
                 vld[ilc] && write(io, Int8.(gt[ilc, :]))
             end
-            append!(lmp, DataFrame(chr = Int8(chr),
-                                   pos = pos[vld] .+ 1,
-                                   ref = ts.tables.sites.ancestral_state[vld],
-                                   alt = alt[vld],
-                                   frq = frq[vld]))
+            append!(
+                lmp,
+                DataFrame(
+                    chr = Int8(chr),
+                    pos = pos[vld] .+ 1,
+                    ref = ts.tables.sites.ancestral_state[vld],
+                    alt = alt[vld],
+                    frq = frq[vld],
+                ),
+            )
             print(" $chr")
         end
     end
@@ -69,7 +74,7 @@ function tsbits(tsf::AbstractString, hps::Vector{Int}, maf::Float64)
     nlc = size(gt, 1)
     vld = zeros(Bool, nlc)
     frq = zeros(nlc)
-    Threads.@threads for i in 1:nlc
+    Threads.@threads for i = 1:nlc
         vld[i] = maximum(gt[i, :]) == 1
         frq[i] = mean(gt[i, :])
     end
@@ -77,12 +82,13 @@ function tsbits(tsf::AbstractString, hps::Vector{Int}, maf::Float64)
     for v in ts.variants()
         push!(alt, Int8(v.alleles[2][1]))
     end
-    vld = vld .&& frq .> maf .&& frq .< 1. - maf
-    (Bool.(gt[vld, :]),
-     Int32.(ts.tables.sites.position[vld]),
-     Char.(ts.tables.sites.ancestral_state[vld]),
-     Char.(alt[vld]),
-     frq[vld]
+    vld = vld .&& frq .> maf .&& frq .< 1.0 - maf
+    (
+        Bool.(gt[vld, :]),
+        Int32.(ts.tables.sites.position[vld]),
+        Char.(ts.tables.sites.ancestral_state[vld]),
+        Char.(alt[vld]),
+        frq[vld],
     )
 end
 
@@ -96,35 +102,32 @@ and `lmp` files into directory `dst`.
 ## Todo
 - Parallelize TS reading later.
 """
-function sample2xy(dir::AbstractString, dst::AbstractString,
-    nid::Int, nlc::Int...; maf = 0.)
+function sample2xy(
+    dir::AbstractString,
+    dst::AbstractString,
+    nid::Int,
+    nlc::Int...;
+    maf = 0.0,
+)
     pop, tid = begin
         info = readlines("$dir/desc.txt")
         info[1], parse(Int, info[2])
     end
-    0 < nid ≤ tid && 0. ≤ maf ≤ 0.4 && all(nlc .> 0) ||
+    0 < nid ≤ tid && 0.0 ≤ maf ≤ 0.4 && all(nlc .> 0) ||
         throw(ArgumentError("Invalid argument(set)"))
-    
+
     @info "  - Sample $nid ID with $nlc loci and MAF $maf from $dir:"
     ids = shuffle(1:tid)[1:nid] # sample IDs
     hps = sort([2ids .- 1; 2ids])
     # parallelize below later
     nchr = sum(.!isnothing.(match.(r"ts$", readdir(dir))))
     gt, pos, ref, alt, frq = tsbits("$dir/1.ts", hps, maf)
-    lmp = DataFrame(chr = Int8(1),
-                    pos = pos,
-                    ref = ref,
-                    alt = alt,
-                    frq = frq)
+    lmp = DataFrame(chr = Int8(1), pos = pos, ref = ref, alt = alt, frq = frq)
     print(1)
-    for chr in 2:nchr
+    for chr = 2:nchr
         a, p, r, alt, f = tsbits("$dir/$chr.ts", hps, maf)
         gt = vcat(gt, a)
-        append!(lmp, DataFrame(chr = Int8(chr),
-                               pos = p,
-                               ref = r,
-                               alt = alt,
-                               frq = f))
+        append!(lmp, DataFrame(chr = Int8(chr), pos = p, ref = r, alt = alt, frq = f))
         print(" $chr")
     end
     println()
@@ -132,7 +135,7 @@ function sample2xy(dir::AbstractString, dst::AbstractString,
     tlc = nrow(lmp)
     loci, set = [], 'A'
     for x in nlc
-        ss =  sort(shuffle(1:tlc)[1:x]) # a SNP set
+        ss = sort(shuffle(1:tlc)[1:x]) # a SNP set
         push!(loci, ss)
         lmp[!, "ss$set"] = zeros(Bool, tlc)
         lmp[!, "ss$set"][ss] .= true

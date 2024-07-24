@@ -19,7 +19,7 @@ Important update: the function now can handle the case when the allele
 frequencies are given.  In this case, the `p` must be a vector of allele
 frequencies
 """
-function grm(gt::AbstractArray; p::Union{Bool, AbstractVector{Float64}} = false)
+function grm(gt::AbstractArray; p::Union{Bool,AbstractVector{Float64}} = false)
     nlc, nid = size(gt)
     length(p) ≠ nlc && (p = mean(gt, dims = 2) / 2) # allele frequencies
     #p = mean(gt, dims = 2) / 2 # allele frequencies
@@ -81,7 +81,8 @@ Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at
 function grm(xy::AbstractString, loci)
     hdr = XY.header(xy)
     hap = XY.mapit(xy)
-    gt = hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
+    gt =
+        hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
         isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
     grm(gt)
 end
@@ -94,7 +95,8 @@ Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at
 function grm(xy::AbstractString, loci, frq)
     hdr = XY.header(xy)
     hap = XY.mapit(xy)
-    gt = hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
-         isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
+    gt =
+        hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
+        isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
     grm(gt, p = frq[loci])
 end

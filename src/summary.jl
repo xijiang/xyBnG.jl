@@ -23,7 +23,7 @@ Calculate the inbreeding coefficient of each individual in with haplotype matrix
 function tibd(mat::AbstractMatrix)
     nlc, nhp = size(mat)
     F = zeros(nhp ÷ 2)
-    Threads.@threads for i in 1:nhp ÷ 2
+    Threads.@threads for i = 1:nhp÷2
         F[i] = sum(mat[:, 2i-1] .== mat[:, 2i]) / nlc
     end
     F
@@ -43,10 +43,10 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
     flr, clg, vgn = zeros(ng), zeros(ng), zeros(ng)
     a2 = 2eff .* eff
     pp, nn = eff .> 0, eff .< 0
-    aa, bb= sum(eff[nn]), sum(eff[pp])
-    for i in 1:ng
+    aa, bb = sum(eff[nn]), sum(eff[pp])
+    for i = 1:ng
         sub = view(mat, :, grt .== ug[i])
-        frq[:, i] = sum(sub, dims=2)
+        frq[:, i] = sum(sub, dims = 2)
         nhp = sum(grt .== ug[i])
         p = frq[:, i] / nhp
         q = 1 .- p
@@ -102,13 +102,15 @@ number and scheme are to be stored in the result DataFrame.
 function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
     haps = XY.mapit(xy)
     ped.iF = tibd(view(haps, lmp.chip, :))
-    frq, flr, clg, vgn = FFCV(isodd.(haps), repeat(ped.grt, inner=2), lmp[!, trait.name * "_a"])
+    frq, flr, clg, vgn =
+        FFCV(isodd.(haps), repeat(ped.grt, inner = 2), lmp[!, trait.name*"_a"])
     A = RS.nrm(ped)
     ped.aF = diag(A) .- 1
     trt = trait.name
     rpt, scheme = split(split(basename(xy), '.')[1], '-')
     rpt = parse(Int, rpt)
-    ss = combine(groupby(ped, :grt),
+    ss = combine(
+        groupby(ped, :grt),
         :id => length => :nid,
         :sire => length ∘ unique => :nsire,
         :dam => length ∘ unique => :ndam,
@@ -121,15 +123,15 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
     )
     insertcols!(ss, 1, :repeat => rpt, :scheme => scheme)
     ng = size(frq, 2)
-    xqtl  = zeros(Int, ng)  # number of QTL fixed
-    xchip  = zeros(Int, ng) # number of chip loci fixed
-    xref  = zeros(Int, ng)  # number of reference loci fixed
+    xqtl = zeros(Int, ng)  # number of QTL fixed
+    xchip = zeros(Int, ng) # number of chip loci fixed
+    xref = zeros(Int, ng)  # number of reference loci fixed
     xfq = zeros(Int, ng)    # number of favorable QTL fixed
     xuq = zeros(Int, ng)    # number of unfavorable QTL fixed
     fhet = zeros(ng)        # Inbreeding by heterozygosity
     fdrift = zeros(ng)      # Inbreeding by drift
     q = zeros(size(frq))
-    for i in 1:ng
+    for i = 1:ng
         chip = view(frq, lmp.chip, i)
         xchip[i] = sum(chip .== 0) + sum(chip .== 2ss.nid[i])
         dark = view(frq, lmp.dark, i)
@@ -137,16 +139,16 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
         qtl = view(frq, lmp[!, trait.name], i)
         xqtl[i] = sum(qtl .== 0) + sum(qtl .== 2ss.nid[i])
         # favorable QTL fixed
-        tt = lmp[!, trait.name] .&& lmp[!, trait.name * "_a"] .> 0
+        tt = lmp[!, trait.name] .&& lmp[!, trait.name*"_a"] .> 0
         tt = tt .&& frq[:, i] .== 2ss.nid[i]
         xfq[i] = sum(tt)
-        tt = lmp[!, trait.name] .&& lmp[!, trait.name * "_a"] .< 0
+        tt = lmp[!, trait.name] .&& lmp[!, trait.name*"_a"] .< 0
         tt = tt .&& frq[:, i] .== 0
         xfq[i] += sum(tt)
-        tt = lmp[!, trait.name] .&& lmp[!, trait.name * "_a"] .< 0
+        tt = lmp[!, trait.name] .&& lmp[!, trait.name*"_a"] .< 0
         tt = tt .&& frq[:, i] .== 2ss.nid[i]
         xuq[i] = sum(tt)
-        tt = lmp[!, trait.name] .&& lmp[!, trait.name * "_a"] .> 0
+        tt = lmp[!, trait.name] .&& lmp[!, trait.name*"_a"] .> 0
         tt = tt .&& frq[:, i] .== 0
         xuq[i] += sum(tt)
         q[:, i] = frq[:, i] / 2ss.nid[i]
@@ -158,13 +160,13 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
 
     q0 = q[:, ssg]
     H0 = snphet(q0)
-    for i in ssg+1:ng
+    for i = ssg+1:ng
         loci = frq[:, i] .≠ 2ss.nid[i] .&& frq[:, i] .≠ 0
         factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
         δq = (q[loci, i] .- q0[loci]) ./ factor
         q₀ = q0[loci] ./ factor
         covdq[i] = cov(δq, q₀)
-        q₀ = (q0[loci] .- .5) ./ factor
+        q₀ = (q0[loci] .- 0.5) ./ factor
         covdq2[i] = cov(δq, q₀)
         Ht = snphet(q[:, i])
         fhet[i] = (H0 - Ht) / H0
@@ -178,7 +180,13 @@ end
     xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait, ssg::Int)
 Summarize the simulation results in file `ped`, `xy` and `lmp` files.
 """
-function xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait, ssg::Int)
+function xysum(
+    ped::AbstractString,
+    xy::AbstractString,
+    lmp::AbstractString,
+    trait::Trait,
+    ssg::Int,
+)
     pd = deserialize(ped)
     lp = deserialize(lmp)
     xysum(pd, xy, lp, trait, ssg)
@@ -188,7 +196,13 @@ end
     xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
 Summarize the simulation results in `xy` and `ped` files. `lmp` is in memory already.
 """
-function xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
+function xysum(
+    ped::AbstractString,
+    xy::AbstractString,
+    lmp::DataFrame,
+    trait::Trait,
+    ssg::Int,
+)
     pd = deserialize(ped)
     xysum(pd, xy, lmp, trait, ssg)
 end
@@ -229,8 +243,8 @@ function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
     M = RS.irm(fxy, lmp.chip, 1:nid)
     @info "  - Calculating correlations across all generations"
     x = y = z = x2 = y2 = z2 = xy = xz = yz = 0.0
-    for i in 1:nid
-        for j in 1:i-1
+    for i = 1:nid
+        for j = 1:i-1
             x += A[i, j]
             y += G[i, j]
             z += M[i, j]
@@ -243,11 +257,11 @@ function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
         end
     end
     n = nid * (nid - 1) / 2
-    c1, c2, c3 =  (xy - x * y / n) / sqrt((x2 - x^2 / n) * (y2 - y^2 / n)),
-                  (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
-                  (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
+    c1, c2, c3 = (xy - x * y / n) / sqrt((x2 - x^2 / n) * (y2 - y^2 / n)),
+    (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
+    (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
     @info "  - Calculating correlations of the generations"
-    id = ped.id[ped.grt .== ped.grt[end]]
+    id = ped.id[ped.grt.==ped.grt[end]]
     x = y = z = x2 = y2 = z2 = xy = xz = yz = 0.0
     for i in id
         for j in id
@@ -264,9 +278,9 @@ function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
         end
     end
     n = length(id) * (length(id) - 1) / 2
-    c4, c5, c6 =  (xy - x * y / n) / sqrt((x2 - x^2 / n) * (y2 - y^2 / n)),
-                  (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
-                  (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
+    c4, c5, c6 = (xy - x * y / n) / sqrt((x2 - x^2 / n) * (y2 - y^2 / n)),
+    (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
+    (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
     return [c1, c2, c3, c4, c5, c6]
 end
 

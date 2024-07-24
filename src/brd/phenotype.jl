@@ -33,17 +33,21 @@ end
 
 As method phenotype! 01, but only phenotype the ID in `ID`.
 """
-function phenotype!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T <: Integer
+function phenotype!(
+    ID::AbstractVector{T},
+    ped::DataFrame,
+    trts::Trait...,
+) where {T<:Integer}
     @debug "Generate phenotypes of trait $(join(name.(trts), ", "))"
     for trt in trts
-        if trt.type == Int 
+        if trt.type == Int
             @info "Non continuous trait not implemented"
             continue
         end
         ft = "ft_$(trt.name)"
         gt = "gt_$(trt.name)"
         if !hasproperty(ped, ft)
-            tmp = Vector{Union{Missing, trt.type}}(missing, nrow(ped))
+            tmp = Vector{Union{Missing,trt.type}}(missing, nrow(ped))
             ped[!, ft] = tmp
         end
         sde = sqrt(1.0 / trt.h2 - 1.0 - trt.vd)

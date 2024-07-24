@@ -55,8 +55,8 @@ relationship matrix is calculated and saved in `bar`.irm.
 function randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
     @info "  - Random selection for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -90,8 +90,8 @@ See also [`randbrd`](@ref), [`iiocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
 function aaocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection AABLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -99,7 +99,7 @@ function aaocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -125,10 +125,10 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
 function iiocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection IIBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
+    cp("$test/$foo.xy", xy, force = true)
     G = zeros(nrow(ped), nrow(ped))
     read!("$test/$foo.irm", G)
-    for ign in 1:ngn
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -136,7 +136,7 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
         mid = nrow(ped)
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
     end
@@ -163,10 +163,10 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`ggocs`](@ref),
 function iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection DOSc for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
+    cp("$test/$foo.xy", xy, force = true)
     G = zeros(nrow(ped), nrow(ped))
     read!("$test/$foo.irm", G)
-    for ign in 1:ngn
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -174,7 +174,7 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
         mid = nrow(ped)
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0, ocs=TM2024)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0, ocs = TM2024)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
     end
@@ -203,8 +203,8 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 function tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection TGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -212,7 +212,7 @@ function tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0, ong=true)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0, ong = true)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -240,8 +240,8 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 function ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection GGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -249,7 +249,7 @@ function ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -275,8 +275,8 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 function agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection AGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -285,7 +285,7 @@ function agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         G = nrm(ped)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -311,8 +311,8 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 function igocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection IGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -321,7 +321,7 @@ function igocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         mid = nrow(ped)
         g22 = irm(xy, lmp.chip, mid+1-length(ids):mid)
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -342,8 +342,8 @@ See also [`ablup`](@ref), [`iblup`](@ref).
 function gblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     @info "  - Directional selection GBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -371,8 +371,8 @@ See also [`gblup`](@ref), [`iblup`](@ref).
 function ablup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     @info "  - Directional selection ABLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -400,10 +400,10 @@ See also [`gblup`](@ref), [`ablup`](@ref).
 function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     @info "  - Directional selection IBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
+    cp("$test/$foo.xy", xy, force = true)
     G = zeros(nrow(ped), nrow(ped))
     read!("$test/$foo.irm", G)
-    for ign in 1:ngn
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
@@ -421,12 +421,12 @@ end
 function ppocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     @info "  - Directional selection AABLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force=true)
-    for ign in 1:ngn
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
-        
+
         # new lines
         Conn.xy.tovcf(xy, "$test/$bar.vcf", lmp)
         run(`phasedibd_julia.R $test $bar.vcf ibd.bin`)
@@ -437,7 +437,7 @@ function ppocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0=F0)
+        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()

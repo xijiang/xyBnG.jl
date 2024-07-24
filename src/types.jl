@@ -49,10 +49,10 @@ struct Trait
         type ∈ [Int, Float64] || error("Type must be Int or Float64")
         sex ∈ 0:2 || error("Sex can only be in 0:2")
         age > 0 || error("Age must be positive")
-        0. < h2 ≤ 1. || error("h² must be in (0, 1]")
+        0.0 < h2 ≤ 1.0 || error("h² must be in (0, 1]")
         0 < nQTL || error("nQTL must be in (0, ∞)")
-        ul = 1. / h2 - 1.
-        0. ≤ vd < ul || error("Var dominance must be in [0., (1 - h²) / h² = $ul)")
+        ul = 1.0 / h2 - 1.0
+        0.0 ≤ vd < ul || error("Var dominance must be in [0., (1 - h²) / h² = $ul)")
         new(name, type, sex, age, h2, nQTL, da, vd, dd, rev)
     end
 end
@@ -74,7 +74,7 @@ function Base.show(io::IO, trt::Trait)
     println(io, " TBV distribution: $(trt.da)")
     println(io, "    Var dominance: $(trt.vd)")
     println(io, "   Dominance dist: $(trt.dd)")
-    print(io,   "Higher the better: $(trt.rev)")
+    print(io, "Higher the better: $(trt.rev)")
 end
 
 """
@@ -83,8 +83,18 @@ end
         Trait(name, sex, age, h2, nQTL, da, vd, dd)
     end
 """
-function Trait(name, h2, nQTL; type = Float64, sex = 2, age = 1.,
-         da = Normal(), vd = 0., dd = Normal(), rev = true)
+function Trait(
+    name,
+    h2,
+    nQTL;
+    type = Float64,
+    sex = 2,
+    age = 1.0,
+    da = Normal(),
+    vd = 0.0,
+    dd = Normal(),
+    rev = true,
+)
     Trait(name, type, sex, age, h2, nQTL, da, vd, dd, rev)
 end
 
@@ -110,7 +120,7 @@ end
 
 function Base.show(io::IO, c::Cattle)
     println(io, "     Name: $(c.name)")
-    print(  io, "Pop. size: $(c.nid)")
+    print(io, "Pop. size: $(c.nid)")
 end
 
 function Cattle(nid::Int)
@@ -139,7 +149,7 @@ mutable struct Plan
         npa > 0 || error("npa must be positive")
         nma > 0 || error("nma must be positive")
         noff > 0 || error("noff must be positive")
-        mate ∈ [:random, :hierarchical, :factorial] || 
+        mate ∈ [:random, :hierarchical, :factorial] ||
             error("mate must be in [:random, :hierarchical, :factorial]")
         new(npa, nma, noff, mate)
     end
@@ -149,7 +159,7 @@ function Base.show(io::IO, p::Plan)
     println(io, "    No. sires: $(p.npa)")
     println(io, "     No. dams: $(p.nma)")
     println(io, "No. offspring: $(p.noff)")
-    print(  io, "       Mating: $(p.mate)")
+    print(io, "       Mating: $(p.mate)")
 end
 
 # ToDo: Add a generic species

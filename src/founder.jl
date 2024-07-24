@@ -24,10 +24,13 @@ function ts_base(pop::Cattle, dir::AbstractString)
     isdir(dir) || mkpath(dir)
     @info "Simulating a cattle population of name $(pop.name), and $(pop.nid) ID in $dir
       Note: This is a simulation with the coancestor/backward simulator msprime."
-    Threads.@threads for chr in 1:29
+    Threads.@threads for chr = 1:29
         print(" $chr")
-        cmd = pipeline(`stdpopsim BosTau -c $chr -o $dir/$chr.ts
-            -d HolsteinFriesian_1M13 Holstein_Friesian:$(pop.nid)`, stderr=devnull)
+        cmd = pipeline(
+            `stdpopsim BosTau -c $chr -o $dir/$chr.ts
+ -d HolsteinFriesian_1M13 Holstein_Friesian:$(pop.nid)`,
+            stderr = devnull,
+        )
         run(cmd)
     end
     open("$dir/desc.txt", "w") do io
@@ -52,12 +55,12 @@ end
 Normalize QTL effect `v`, such that the `Q'v` has mean `μ` and standard deviation
 `σ`.
 """
-function norm_v(Q::AbstractMatrix, v; ϵ = 1e-6, μ=0., σ=1.)
-    nqtl= size(Q, 1)
+function norm_v(Q::AbstractMatrix, v; ϵ = 1e-6, μ = 0.0, σ = 1.0)
+    nqtl = size(Q, 1)
     gv = Q'v
     m, s = mean(gv), std(gv)
     while abs(m - μ) > ϵ || abs(s - σ) > ϵ
-        v .-= (m - μ)/nqtl
+        v .-= (m - μ) / nqtl
         v .*= σ / s
         gv = Q'v
         m, s = mean(gv), std(gv)
@@ -69,7 +72,7 @@ end
 
 Make SNP of a (founder) population unique.
 """
-function uniq(ixy::T, oxy::T) where T <: AbstractString
+function uniq(ixy::T, oxy::T) where {T<:AbstractString}
     hdr, (nlc, nhp) = XY.header(ixy), XY.dim(ixy)
     hdr.u == 0 || error("Not a SNP file")
     type = XY._type(hdr.type)
@@ -77,7 +80,8 @@ function uniq(ixy::T, oxy::T) where T <: AbstractString
         error("Too many ID in the file")
     elseif nhp > typemax(Int16) - 2
         type = Int32
-    else nhp > typemax(Int8) - 2
+    else
+        nhp > typemax(Int8) - 2
         type = Int16
     end
     hdr.type, hdr.u = XY._type(type), 1
@@ -85,7 +89,7 @@ function uniq(ixy::T, oxy::T) where T <: AbstractString
     v = zeros(type, nlc) # for type safety
     open(oxy, "w") do io
         write(io, Ref(hdr), [nlc, nhp])
-        for i in 1:nhp
+        for i = 1:nhp
             copyto!(v, gt[:, i])
             v .+= 2(i - 1)
             write(io, v)
@@ -99,8 +103,14 @@ Sample loci for a cattle population founder. The founder population is stored in
 `tdir` with `nid` ID, `nchp` chip SNP, and `nref` reference loci. The traits
 `trts` are used to sample the QTLs. The founder population is stored in `tdir`.
 """
-function sample_ts(bdir::AbstractString, tdir::AbstractString,
-    nid::Int, nchp::Int, nref::Int, trts::Trait...)
+function sample_ts(
+    bdir::AbstractString,
+    tdir::AbstractString,
+    nid::Int,
+    nchp::Int,
+    nref::Int,
+    trts::Trait...,
+)
     nqtl = [t.nQTL for t in trts]
     name = readline("$bdir/desc.txt")
     lmp = TS.sample2xy(bdir, tdir, nid, nchp, nref, nqtl...)
@@ -111,12 +121,13 @@ function sample_ts(bdir::AbstractString, tdir::AbstractString,
         c += 1
     end
     rename!(lmp, dic)
-    ped = DataFrame(id = Int32.(1:nid),
-                    sire = Int32(0),
-                    dam = Int32(0),
-                    sex = rand(Int8.(0:1), nid),
-                    grt = Int16(1),
-                    )
+    ped = DataFrame(
+        id = Int32.(1:nid),
+        sire = Int32(0),
+        dam = Int32(0),
+        sex = rand(Int8.(0:1), nid),
+        grt = Int16(1),
+    )
     snps = mmap("$tdir/$name.xy", Matrix{Int8}, (nrow(lmp), 2nid), 24)
     for t in trts
         qtl = lmp[!, t.name]
@@ -125,8 +136,8 @@ function sample_ts(bdir::AbstractString, tdir::AbstractString,
         a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
         norm_v(Q, a)
         norm_v(D, d, σ = sqrt(t.vd))
-        lmp[!, "$(t.name)_a"] .= 0.
-        lmp[!, "$(t.name)_d"] .= 0.
+        lmp[!, "$(t.name)_a"] .= 0.0
+        lmp[!, "$(t.name)_d"] .= 0.0
         lmp[!, "$(t.name)_a"][qtl] .= a
         lmp[!, "$(t.name)_d"][qtl] .= d
         ped[!, "tbv_$(t.name)"] = Q'a
@@ -152,34 +163,120 @@ function macs_base(nid::Int, dir::AbstractString)
     Ne = 100
     μ = 2.5e-8 * (4Ne)
     # [Chromosome length in bp](https://www.ncbi.nlm.nih.gov/projects/r_gencoll/ftp_service/nph-gc-ftp-service.cgi/?HistoryId=MCID_642d5d40ceff2e2c64293c60&QueryKey=1&ReleaseType=RefSeq&FileType=GENOME_FASTA&Flat=true)
-    chr = [158534110, 136231102, 121005158, 120000601, 120089316, 117806340,
-        110682743, 113319770, 105454467, 103308737, 106982474, 87216183,
-        83472345, 82403003, 85007780, 81013979, 73167244, 65820629, 63449741,
-        71974595, 69862954, 60773035, 52498615, 62317253, 42350435, 51992305,
-        45612108, 45940150, 51098607]
+    chr = [
+        158534110,
+        136231102,
+        121005158,
+        120000601,
+        120089316,
+        117806340,
+        110682743,
+        113319770,
+        105454467,
+        103308737,
+        106982474,
+        87216183,
+        83472345,
+        82403003,
+        85007780,
+        81013979,
+        73167244,
+        65820629,
+        63449741,
+        71974595,
+        69862954,
+        60773035,
+        52498615,
+        62317253,
+        42350435,
+        51992305,
+        45612108,
+        45940150,
+        51098607,
+    ]
     r = 1e-8 * 4Ne
     # Scaled time
-    tm = [10, 25, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 2000,
-        3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 20000, 40000, 60000,
-        80000, 100000, 200000, 400000, 600000, 800000] / (4Ne)
+    tm =
+        [
+            10,
+            25,
+            50,
+            100,
+            200,
+            300,
+            400,
+            500,
+            600,
+            700,
+            800,
+            900,
+            1000,
+            2000,
+            3000,
+            4000,
+            5000,
+            6000,
+            7000,
+            8000,
+            9000,
+            10000,
+            20000,
+            40000,
+            60000,
+            80000,
+            100000,
+            200000,
+            400000,
+            600000,
+            800000,
+        ] / (4Ne)
     # Scaled population size
-    ps = [175, 200, 350, 500, 700, 820, 850, 900, 1000, 1100, 1275, 1300, 1200,
-        2000, 2500, 3000, 3200, 3500, 3800, 4000, 4200, 4500, 5456, 7367, 9278,
-        11190, 13101, 22658, 41772, 60886, 80000] / Ne
+    ps =
+        [
+            175,
+            200,
+            350,
+            500,
+            700,
+            820,
+            850,
+            900,
+            1000,
+            1100,
+            1275,
+            1300,
+            1200,
+            2000,
+            2500,
+            3000,
+            3200,
+            3500,
+            3800,
+            4000,
+            4200,
+            4500,
+            5456,
+            7367,
+            9278,
+            11190,
+            13101,
+            22658,
+            41772,
+            60886,
+            80000,
+        ] / Ne
     eN = ""
-    for i in 1:length(tm)
+    for i = 1:length(tm)
         eN *= " -eN $(tm[i]) $(ps[i])"
     end
     macs = Sys.which("macs")
     (isnothing(macs) || any(isspace.(collect(macs)))) && error("Command `macs` error")
     @info "  - Simulating a cattle population with MaCS into $dir"
-    Threads.@threads for i in 1:length(chr)
+    Threads.@threads for i = 1:length(chr)
         print(" $i")
         cmd = "$macs $(2nid) $(chr[i]) -t $μ -r $r" * eN
         cmd = Cmd(convert(Vector{String}, split(cmd)))
-        run(pipeline(cmd,
-            stdout = "$dir/chr.$i",
-            stderr = "$dir/log.$i"))
+        run(pipeline(cmd, stdout = "$dir/chr.$i", stderr = "$dir/log.$i"))
     end
     println()
 end
@@ -189,10 +286,12 @@ end
 Sample `nspl` loci from `pool` and add them to `lmp` with name `name`. The loci
 are added to ``Set`` `out`. Return the loci sampled.
 """
-function add_bool!(lmp::DataFrame,
-    name::AbstractString, 
+function add_bool!(
+    lmp::DataFrame,
+    name::AbstractString,
     pool::AbstractVector{Int},
-    nspl::Int)
+    nspl::Int,
+)
     loci = sort(shuffle(pool)[1:nspl])
     lmp[!, name] .= false
     lmp[!, name][loci] .= true
@@ -208,9 +307,16 @@ reference loci, and `trts` traits.
 Note: ID are sampled first. It is better to read the genotype sequentially on a
 spinning disk. Hence the SNP file needs to be loci majored.
 """
-function sample_xy(fxy::AbstractString, fmp::AbstractString,
-                   tdir::AbstractString, nid::Int, maf::Float64,
-                   nchp::Int, nref::Int, trts::Trait...)
+function sample_xy(
+    fxy::AbstractString,
+    fmp::AbstractString,
+    tdir::AbstractString,
+    nid::Int,
+    maf::Float64,
+    nchp::Int,
+    nref::Int,
+    trts::Trait...,
+)
     isfile(fxy) && isfile(fmp) || error("Files $fxy or $fmp not found")
     isdir(tdir) || mkpath(tdir)
     msnp = maximum((nchp, nref))
@@ -231,21 +337,22 @@ function sample_xy(fxy::AbstractString, fmp::AbstractString,
     end
     sgt = Int8.(gt[:, hps])
     frq = vec(mean(sgt, dims = 2)) # mean(gt, dims = 2) is a matrix !
-    
+
     @info "  - Sampling SNP"
-    vld = (frq .> maf) .&& (frq .< 1. - maf)
+    vld = (frq .> maf) .&& (frq .< 1.0 - maf)
     msnp ≤ sum(vld) || error("Number of SNP required is larger than available")
     pool, out = (1:nlc)[vld], Set{Int}()
     chip = add_bool!(lmp, "chip", pool, nchp)
     out = out ∪ chip
     dark = add_bool!(lmp, "dark", pool, nref)
     out = out ∪ dark
-    ped = DataFrame(id = Int32.(1:nid),
-                    sire = Int32(0),
-                    dam = Int32(0),
-                    sex = rand(Int8.(0:1), nid),
-                    grt = Int16(0),
-                    )
+    ped = DataFrame(
+        id = Int32.(1:nid),
+        sire = Int32(0),
+        dam = Int32(0),
+        sex = rand(Int8.(0:1), nid),
+        grt = Int16(0),
+    )
     for t in trts
         qtl = add_bool!(lmp, t.name, pool, t.nQTL)
         out = out ∪ qtl
@@ -254,8 +361,8 @@ function sample_xy(fxy::AbstractString, fmp::AbstractString,
         a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
         norm_v(Q, a)
         norm_v(D, d, σ = sqrt(t.vd))
-        lmp[!, "$(t.name)_a"] .= 0.
-        lmp[!, "$(t.name)_d"] .= 0.
+        lmp[!, "$(t.name)_a"] .= 0.0
+        lmp[!, "$(t.name)_d"] .= 0.0
         lmp[!, "$(t.name)_a"][qtl] = a
         lmp[!, "$(t.name)_d"][qtl] = d
         ped[!, "tbv_$(t.name)"] = Q'a
