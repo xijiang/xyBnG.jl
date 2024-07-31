@@ -122,8 +122,8 @@ function Select(
         vd = view(tmp, tmp.sex .== 0, :idx)
         vs ./= std(vs)
         vd ./= std(vd)
-        rev || (dat.idx *= -1) # select lowest
-        dat
+        rev || (tmp.idx *= -1) # select lowest
+        tmp
     end
 
     K = ong ? 2dF : konstraint(dF, F0, igrt)
