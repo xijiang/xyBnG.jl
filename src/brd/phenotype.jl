@@ -53,14 +53,10 @@ function phenotype!(
         sde = sqrt(1.0 / trt.h2 - 1.0 - trt.vd)
         id = zeros(Bool, nrow(ped))
         id[ID] .= true
-        if trt.sex == 2 # all ID have phenotypes
-            tgt = view(ped, id, ft)
-        else
-            id = zeros(Bool, nrow(ped))
-            id[ID] .= true
+        if trt.sex ≠ 2 # not all sexes have phenotype
             id = id .&& ped.sex .== trt.sex
-            tgt = view(ped, id, ft)
         end
+        tgt = view(ped, id, ft)
         copyto!(tgt, rand(Normal(0, sde), sum(id)) + view(ped, id, gt))
     end
     ped

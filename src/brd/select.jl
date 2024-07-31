@@ -22,11 +22,14 @@ function mate(pas::AbstractVector{T}, mas::AbstractVector{T}, plan::Plan) where 
         end
     end
     pm = sortslices([sire dam], dims = 1, by = x -> (x[1], x[2]))
+    ns = plan.noff ÷ 2
+    nd = plan.noff - ns
     DataFrame(
         id = 1:plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
-        sex = rand(Int8.(0:1), plan.noff),
+        #sex = rand(Int8.(0:1), plan.noff),
+        sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
         grt = 1,
     )
 end
@@ -112,8 +115,17 @@ function Select(
     rev = true,
 ) where {T<:Integer}
     @debug "Optimal contribution selection"
-    dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
-    rev || (dat.idx *= -1) # select lowest
+    dat = begin
+        tmp = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
+        # Standardize the EBV
+        vs = view(tmp, tmp.sex .== 1, :idx)
+        vd = view(tmp, tmp.sex .== 0, :idx)
+        vs ./= std(vs)
+        vd ./= std(vd)
+        rev || (dat.idx *= -1) # select lowest
+        dat
+    end
+
     K = ong ? 2dF : konstraint(dF, F0, igrt)
     c = ocs(dat, rs, K)  # this is to select the highest, or equivalently rev = true
     cs = ped.sex[ID] .== 1 # sire candidates
@@ -121,11 +133,13 @@ function Select(
     pa = sample(ID[cs], Weights(c[cs]), noff)
     ma = sample(ID[cd], Weights(c[cd]), noff)
     pm = sortslices([pa ma], dims = 1, by = x -> (x[1], x[2]))
+    ns = noff ÷ 2
+    nd = noff - ns
     DataFrame(
         id = nrow(ped)+1:nrow(ped)+noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
-        sex = rand(Int8.(0:1), noff),
+        sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
         grt = ped.grt[end] + 1,
     )
 end
