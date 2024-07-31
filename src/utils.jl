@@ -67,7 +67,7 @@ function Ceiling(;
     qd = Beta(0.75, 0.75), # allele frequency distribution
 )
     C = 0.0        # Ceiling height
-    for _ in 1:nRepeat
+    for _ = 1:nRepeat
         a = rand(ad, nQTL) # effects of SNP 1s
         p = rand(qd, nQTL) # U-shaped allele frequencies
         σ = sqrt(sum(2p .* (1 .- p) .* a .^ 2)) # genic std

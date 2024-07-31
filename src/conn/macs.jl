@@ -16,19 +16,17 @@ Clone `MaCS` into a temp dir under `tdir` and compile it into `tdir`.
 - `g++`, and `boost-devel` must be installed.
 - this function return the absolute path of newly compiled `macs` in the end.
 """
-function make_macs(; tdir=pwd())
+function make_macs(; tdir = pwd())
     macs = Sys.which("macs")
     isnothing(macs) || return macs
-    
+
     macs = joinpath(abspath(tdir), "macs")
     @debug "Making macs"
     isfile(macs) && return macs
     isdir(tdir) || mkpath(tdir)
     wdir = mktempdir(tdir)
     run(`git clone https://github.com/gchen98/macs $wdir`)
-    src = joinpath.(wdir, ["simulator.cpp",
-        "algorithm.cpp",
-        "datastructures.cpp"])
+    src = joinpath.(wdir, ["simulator.cpp", "algorithm.cpp", "datastructures.cpp"])
     target = joinpath(tdir, "macs")
     run(`g++ -o $target -O3 -Wall $src`)
     return macs
@@ -60,7 +58,7 @@ function read_macs(file, trans = false)
     nlc = length(ps)
     gt = reshape(gt, :, nlc)
     trans && (gt = gt')
-    fq = trans ? mean(gt, dims=2) : mean(gt, dims=1)
+    fq = trans ? mean(gt, dims = 2) : mean(gt, dims = 1)
     return gt, vec(ps), vec(fq)
 end
 
@@ -86,13 +84,24 @@ function toxy(dir; swap = false, keep = false)
         occursin.(r"^chr", f) && push!(chrs, parse(Int8, split(f, '.')[2]))
     end
     sort!(chrs)           # chromosome number in integer, and in order
-    lmp = DataFrame(chr = Int8[], pos = Int64[], ref = Char[], alt = Char[], 
-                    frq = Float64[])
+    lmp =
+        DataFrame(chr = Int8[], pos = Int64[], ref = Char[], alt = Char[], frq = Float64[])
     hdr = XY.header(major = 1) # ID majored
     tid, tlc = 0, 0
-    aa = (('A', 'C'), ('A', 'G'), ('A', 'T'), ('C', 'A'),
-          ('C', 'G'), ('C', 'T'), ('G', 'A'), ('G', 'C'),
-          ('G', 'T'), ('T', 'A'), ('T', 'C'), ('T', 'G'))
+    aa = (
+        ('A', 'C'),
+        ('A', 'G'),
+        ('A', 'T'),
+        ('C', 'A'),
+        ('C', 'G'),
+        ('C', 'T'),
+        ('G', 'A'),
+        ('G', 'C'),
+        ('G', 'T'),
+        ('T', 'A'),
+        ('T', 'C'),
+        ('T', 'G'),
+    )
     open(fmd, "w") do io
         write(io, Ref(hdr), [tid, tlc])
         for c in chrs
@@ -100,21 +109,21 @@ function toxy(dir; swap = false, keep = false)
             chr = joinpath(dir, "chr.$c")
             gt, ps, fq = read_macs(chr)
             if swap # such that the allele frequencies has a 'U' shaped distribution
-                for i in 1:2:size(gt, 2)
+                for i = 1:2:size(gt, 2)
                     (gt[:, i] = 1 .- gt[:, i])
                     fq[i] = 1 - fq[i]
                 end
             end
-            tid  = size(gt, 1)
+            tid = size(gt, 1)
             tlc += size(gt, 2)
             write(io, gt)
             ref, alt = Char[], Char[]
-            for i in 1:size(gt, 2)
+            for i = 1:size(gt, 2)
                 x = aa[rand(1:12)]
                 push!(ref, x[1])
                 push!(alt, x[2])
             end
-            append!(lmp, DataFrame(chr=c, pos=ps, ref=ref, alt=alt, frq=fq))
+            append!(lmp, DataFrame(chr = c, pos = ps, ref = ref, alt = alt, frq = fq))
         end
     end
     XY.dim!(fmd, tid, tlc)

@@ -53,7 +53,12 @@ function fungencont(dat, A, K)
         denominat = 4 * K - sum(QAQI)
         numerat = u' * (AI - AI * Q * QAQI * Q' * AI) * u
         if (denominat <= 0.0)
-            println(" cannot achieve constraint ", K, " MINIMISATION OF RELATIONSHIPS ", size(QAQI))
+            println(
+                " cannot achieve constraint ",
+                K,
+                " MINIMISATION OF RELATIONSHIPS ",
+                size(QAQI),
+            )
             ierr = 0
             if (isex == 2)
                 c = 0.5 * AI * Q * QAQI * ones(size(QAQI, 1))
@@ -149,8 +154,10 @@ function DOSc(lamb0, uhat, A, A12, s, Ktilde, Nx, sex)
         #Step3
         Kval = 0.0
         (nx[1] > 0) ? Kval += s * fact * fact * sumS / nx[1] / nx[1] : nothing
-        (size(nx, 1) == 2) && (nx[2] > 0) ? Kval += s * fact * fact * sumD / nx[2] / nx[2] : nothing
-        (size(nx, 1) == 2) && (nx[2] * nx[1] > 0) ? Kval += s * fact * sumSD / nx[1] / nx[2] : nothing
+        (size(nx, 1) == 2) && (nx[2] > 0) ? Kval += s * fact * fact * sumD / nx[2] / nx[2] :
+        nothing
+        (size(nx, 1) == 2) && (nx[2] * nx[1] > 0) ?
+        Kval += s * fact * sumSD / nx[1] / nx[2] : nothing
         if (1 - s > 0)
             (nx[1] > 0) ? Kval += 2 * (1 - s) * fact * sumA12S / nx[1] : nothing
             (nx[2] > 0) ? Kval += 2 * (1 - s) * fact * sumA12D / nx[2] : nothing
@@ -247,7 +254,9 @@ function DOSop(uhat, A, A12, s, Ktilde, Nx, sex)
         f3 = sum(c' * uhat)
     end
     if !(f0 <= max(f1, f2) >= f3)
-        println("problem is NOT bracketed by $(x0), $(x1), $(x2), $(x3) with gains $(f0), $(f1), $(f2), $(f3) ")
+        println(
+            "problem is NOT bracketed by $(x0), $(x1), $(x2), $(x3) with gains $(f0), $(f1), $(f2), $(f3) ",
+        )
         return zeros(size(uhat, 1))
     end
 

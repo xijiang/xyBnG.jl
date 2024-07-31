@@ -5,13 +5,17 @@ A tale of selection. Many of us are using script languages to do our work. A
 script also means the written text of a play, movie, or broadcast. It tells a
 story. Here is a story of selection, using my package of `xyBnG`.
 """
-function a_tale_of_selection(rst::AbstractString, base::AbstractString, tale::AbstractString)
+function a_tale_of_selection(
+    rst::AbstractString,
+    base::AbstractString,
+    tale::AbstractString,
+)
     toxy = Conn.TS.toxy
     ########################################
     # Scenarios, or characters in the play
     baseDir, tstDir = "$rst/$base", "$rst/$tale"
     cattle = Cattle(5_000)
-    milk   = Trait("milk",   0.3, 10000; sex = 0, vd = 0.1)
+    milk = Trait("milk", 0.3, 10000; sex = 0, vd = 0.1)
     growth = Trait("growth", 0.5, 10000; sex = 2, vd = 0.2)
     nid, nchp, nref = 200, 50_000, 10_000
     nrng, nsel = 5, 10
@@ -94,9 +98,9 @@ function a_tale_of_selection(rst::AbstractString, base::AbstractString, tale::Ab
     foo, bar = "rand", "both"
     cp("$tstDir/$foo.xy", "$tstDir/$bar.xy", force = true)
     ped = deserialize("$tstDir/$foo.ped")
-    xy  = "$tstDir/$bar.xy"
-    wgt = Dict{String, Float64}("milk" => 0.6, "growth" => 0.4)
-    for igrt in 1:nrng
+    xy = "$tstDir/$bar.xy"
+    wgt = Dict{String,Float64}("milk" => 0.6, "growth" => 0.4)
+    for igrt = 1:nrng
         @info lpad("<--- Generation $igrt / $nrng --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)
@@ -119,8 +123,8 @@ function a_tale_of_selection(rst::AbstractString, base::AbstractString, tale::Ab
         cp("$tstDir/$foo.$ext", "$tstDir/$bar.$ext", force = true)
     end
     ped = deserialize("$tstDir/$bar.ped")
-    xy  = "$tstDir/$bar.xy"
-    for igrt in 1:nsel
+    xy = "$tstDir/$bar.xy"
+    for igrt = 1:nsel
         @info lpad("<--- Generation $igrt / $nsel --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)
@@ -144,9 +148,9 @@ function a_tale_of_selection(rst::AbstractString, base::AbstractString, tale::Ab
         cp("$tstDir/$foo.$ext", "$tstDir/$bar.$ext", force = true)
     end
     ped = deserialize("$tstDir/$bar.ped")
-    xy  = "$tstDir/$bar.xy"
+    xy = "$tstDir/$bar.xy"
     plan = Plan(25, 50, 200, mate = :random)
-    for igrt in 1:nsel
+    for igrt = 1:nsel
         @info lpad("<--- Generation $igrt / $nsel --->", 40)
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk, growth)

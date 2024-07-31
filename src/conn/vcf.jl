@@ -72,7 +72,7 @@ Convert a line of VCF file into a tuple of chromosome, position, ref and alt.
 Also the frequency of allele 1. Write the alternative alleles into a vector of
 Int8.
 """
-function line2v(line::AbstractString, av::AbstractVector{Int8}; sep='\t')
+function line2v(line::AbstractString, av::AbstractVector{Int8}; sep = '\t')
     f, _ = findnth(line, sep, 5)
     txt = split(line[1:f])
     chr = parse(Int8, txt[1])
@@ -81,7 +81,7 @@ function line2v(line::AbstractString, av::AbstractVector{Int8}; sep='\t')
     alt = txt[5][1]
     f, _ = findnth(line, sep, 9)
     n, k = length(line), 0
-    for i in f+1:4:n
+    for i = f+1:4:n
         k += 1
         av[2k-1] = line[i]
         av[2k] = line[i+2]
@@ -98,17 +98,22 @@ parallelly at a time. It also only deals with SNP VCF files. The SNPs should
 have maximal 2 alleles only. Fields in the VCF file should be separated by tabs,
 one and only one between two fields.
 """
-function toxy(vcf::AbstractString, sxy::AbstractString; nln=10000)
+function toxy(vcf::AbstractString, sxy::AbstractString; nln = 10000)
     nlc, nid = dim(vcf)
-    hdr = XY.header(major=1)
-    lmp = DataFrame(chr=zeros(Int8, nlc), pos=zeros(Int32, nlc),
-                    ref = 'a', alt = 't', frq=0.0) # map
+    hdr = XY.header(major = 1)
+    lmp = DataFrame(
+        chr = zeros(Int8, nlc),
+        pos = zeros(Int32, nlc),
+        ref = 'a',
+        alt = 't',
+        frq = 0.0,
+    ) # map
     write(sxy * ".xy", Ref(hdr), [2nid, nlc])
 
     # Create blocks for parallel processing
     blks = collect(nln:nln:nlc)
     blks[end] < nlc && push!(blks, nlc)
-    
+
     @info "Processing the genotypes:"
     open(sxy * ".xy", "w") do oo
         write(oo, Ref(hdr), [2nid, nlc])
@@ -151,7 +156,7 @@ function toxy(vcf::AbstractString, sxy::AbstractString; nln=10000)
     serialize("$sxy.lmp", lmp)
 end
 
-function z2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
+function z2xy(zvcf::AbstractString, xy::AbstractString; nln = 10000)
     @info "Counting loci and individuals in $zvcf"
     nlc, nid = 0, 0
     open(`pigz -dc $zvcf`, "r+") do ii
@@ -162,14 +167,15 @@ function z2xy(zvcf::AbstractString, xy::AbstractString; nln=10000)
                 continue
             end
             nlc += 1
-            nlc % 100_000 == 0 && print("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))")
+            nlc % 100_000 == 0 &&
+                print("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))")
         end
         println("\r\tn_ID = $(commas(nid)); n_Loci = $(commas(nlc))\n")
     end
 
     open(`pigz -dc $zvcf`, "r+") do ii
         hdr = xyheader(nlc, 2nid)
-        mmp = DataFrame(chr=zeros(Int8, nlc), pos=zeros(Int32, nlc), frq=zeros(nlc)) # map
+        mmp = DataFrame(chr = zeros(Int8, nlc), pos = zeros(Int32, nlc), frq = zeros(nlc)) # map
         write(xy * "-hap.xy", Ref(hdr))
 
         bs = blksz(nlc, nln)

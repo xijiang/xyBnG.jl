@@ -4,7 +4,7 @@
 Give random EBV of trait `trts` about ID specified with `ID` in DataFrame `ped`.
 The rest of the values, and the sex not specific values are set as missing.
 """
-function Predict!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T <: Integer
+function Predict!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where {T<:Integer}
     1 ≤ minimum(ID) ≤ maximum(ID) ≤ nrow(ped) || throw(ArgumentError("ID out of range"))
     for trt in trts
         ebv = "ebv_" * trt.name
@@ -23,9 +23,13 @@ Predict the trait(s) `trts` EBV of `ID` in DataFrame `ped` with the fixed
 effects `fixed`, which is/are also column(s) in `ped`, the inverse relationship
 matrix `giv`.
 """
-function Predict!(ID::AbstractVector{T}, ped::DataFrame,
-    fixed::Vector{S}, giv::Matrix{Float64},
-    trts::Trait...) where {T <: Integer, S <: AbstractString}
+function Predict!(
+    ID::AbstractVector{T},
+    ped::DataFrame,
+    fixed::Vector{S},
+    giv::Matrix{Float64},
+    trts::Trait...,
+) where {T<:Integer,S<:AbstractString}
     1 ≤ minimum(ID) ≤ maximum(ID) ≤ nrow(ped) || throw(ArgumentError("ID out of range"))
     X = incidence_matrix(select(ped, fixed))
     for trt in trts

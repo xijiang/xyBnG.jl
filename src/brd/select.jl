@@ -4,29 +4,32 @@
 Mate `pas`, `mas` according to `plan` to produce `noff` offspring in DataFrame
 `ped`.
 """
-function mate(pas::AbstractVector{T}, mas::AbstractVector{T}, plan::Plan) where T <: Integer
+function mate(pas::AbstractVector{T}, mas::AbstractVector{T}, plan::Plan) where {T<:Integer}
     if plan.mate == :random
         sire = rand(pas, plan.noff)
-        dam  = rand(mas, plan.noff)
+        dam = rand(mas, plan.noff)
     else
         st = Int(ceil(plan.noff / plan.npa))
         dt = Int(ceil(plan.noff / plan.nma))
         if plan.mate == :hierarchical
             sire = repeat(shuffle(pas), inner = st)[1:plan.noff]
-            dam  = repeat(mas, inner = dt)[1:plan.noff]
+            dam = repeat(mas, inner = dt)[1:plan.noff]
         elseif plan.mate == :factorial
             sire = repeat(shuffle(pas), outer = st)[1:plan.noff]
-            dam  = repeat(mas, outer = dt)[1:plan.noff]
+            dam = repeat(mas, outer = dt)[1:plan.noff]
         else
             error("mate must be in [:random, :hierarchical, :factorial]")
         end
     end
-    pm = sortslices([sire dam], dims=1, by=x -> (x[1], x[2]))
+    pm = sortslices([sire dam], dims = 1, by = x -> (x[1], x[2]))
+    ns = plan.noff ÷ 2
+    nd = plan.noff - ns
     DataFrame(
         id = 1:plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
-        sex = rand(Int8.(0:1), plan.noff),
+        #sex = rand(Int8.(0:1), plan.noff),
+        sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
         grt = 1,
     )
 end
@@ -37,14 +40,19 @@ end
 Selection `ID` on their EBV of trait `trt` in DataFrame `ped` according to plan
 `plan`.
 """
-function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
+function Select(
+    ID::AbstractVector{T},
+    plan::Plan,
+    ped::DataFrame,
+    trt::Trait,
+) where {T<:Integer}
     @debug "Selection on $(trt.name)"
     df = select(view(ped, ID, :), :id, :sex, r"ebv_")
     sort!(df, "ebv_" * trt.name, rev = trt.rev)
     gps = groupby(df, :sex)
     mas = gps[1].id[1:plan.nma]
     pas = gps[2].id[1:plan.npa]
-    ng  = mate(pas, mas, plan)
+    ng = mate(pas, mas, plan)
     ng.id .+= nrow(ped)
     ng.grt .+= maximum(ped.grt[ID])
     ng
@@ -55,12 +63,18 @@ end
 
 Selection `ID` on their weighted EBV of traits in dictionary `dic`.
 """
-function Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; rev = true) where T <: Integer
+function Select(
+    ID::AbstractVector{T},
+    plan::Plan,
+    ped::DataFrame,
+    dic::Dict;
+    rev = true,
+) where {T<:Integer}
     @debug "Selection on $(join(keys(dic), ", "))"
     df = select(view(ped, ID, :), :id, :sex, r"ebv_")
     index = zeros(nrow(df))
     for trt in keys(dic)
-        index += df[!, "ebv_" * trt] * dic[trt]
+        index += df[!, "ebv_"*trt] * dic[trt]
     end
     df.index = index
     sort!(df, :index, rev = rev)
@@ -87,32 +101,47 @@ generation. The contribution of each individual in `ID` is calculated with
 function `ocs`. The `noff` offspring are randomly selected weighted on their
 contribution `c`.
 """
-function Select(ID::AbstractVector{T},
-                ped::DataFrame,
-                rs::AbstractMatrix{Float64},
-                trt::Trait,
-                noff::Int,
-                dF::Float64,
-                igrt::Int;
-                F0 = 0.0,
-                ocs = TM1997,
-                ong = false,
-                rev = true) where T <: Integer
+function Select(
+    ID::AbstractVector{T},
+    ped::DataFrame,
+    rs::AbstractMatrix{Float64},
+    trt::Trait,
+    noff::Int,
+    dF::Float64,
+    igrt::Int;
+    F0 = 0.0,
+    ocs = TM1997,
+    ong = false,
+    rev = true,
+) where {T<:Integer}
     @debug "Optimal contribution selection"
-    dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
-    rev || (dat.idx *= -1) # select lowest
+    dat = begin
+        tmp = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
+        # Standardize the EBV
+        vs = view(tmp, tmp.sex .== 1, :idx)
+        vd = view(tmp, tmp.sex .== 0, :idx)
+        vs ./= std(vs)
+        vd ./= std(vd)
+        rev || (dat.idx *= -1) # select lowest
+        dat
+    end
+
     K = ong ? 2dF : konstraint(dF, F0, igrt)
     c = ocs(dat, rs, K)  # this is to select the highest, or equivalently rev = true
     cs = ped.sex[ID] .== 1 # sire candidates
     cd = ped.sex[ID] .== 0 # dam candidates
     pa = sample(ID[cs], Weights(c[cs]), noff)
     ma = sample(ID[cd], Weights(c[cd]), noff)
-    pm = sortslices([pa ma], dims=1, by=x -> (x[1], x[2]))
-    DataFrame(id = nrow(ped) + 1:nrow(ped) + noff,
-              sire = pm[:, 1],
-              dam  = pm[:, 2],
-              sex = rand(Int8.(0:1), noff),
-              grt = ped.grt[end] + 1)
+    pm = sortslices([pa ma], dims = 1, by = x -> (x[1], x[2]))
+    ns = noff ÷ 2
+    nd = noff - ns
+    DataFrame(
+        id = nrow(ped)+1:nrow(ped)+noff,
+        sire = pm[:, 1],
+        dam = pm[:, 2],
+        sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
+        grt = ped.grt[end] + 1,
+    )
 end
 
 #=

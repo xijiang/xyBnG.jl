@@ -15,6 +15,7 @@ using Mmap
 using Random
 using Serialization
 using SparseArrays
+using Statistics
 import StatsBase: sample, Weights
 using xyBnG.XY
 using xyBnG.xyTypes: Trait, Cattle, Species, Plan, name

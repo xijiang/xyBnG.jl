@@ -1,16 +1,17 @@
 function one_trait(;
-                    baseDir = "rst/base",
-                    tstDir = "rst/onetrt",
-                    cattle = Cattle("cattle", 5_000),
-                    milk = Trait("milk", 0.25, 10000; sex = 0),
-                    nid = 200,
-                    nchp = 50_000,
-                    nref = 10_000,
-                    nrng = 5,
-                    nsel = 20,
-                    plan = Plan(25, 50, 200),
-                    fixed = ["grt"],
-                    dF = 0.011,)
+    baseDir = "rst/base",
+    tstDir = "rst/onetrt",
+    cattle = Cattle("cattle", 5_000),
+    milk = Trait("milk", 0.25, 10000; sex = 0),
+    nid = 200,
+    nchp = 50_000,
+    nref = 10_000,
+    nrng = 5,
+    nsel = 20,
+    plan = Plan(25, 50, 200),
+    fixed = ["grt"],
+    dF = 0.011,
+)
     title = md"""# Simulation: Selection on one trait"""
     tprintln(title, "\n")
     synopsis = md"""## Synpsis:
@@ -28,10 +29,10 @@ function one_trait(;
     if !isfile("$tstDir/founder.xy")
         sample_ts(baseDir, tstDir, nid, nchp, nref, milk)
         for ext in ["ped", "lmp"]
-            mv("$tstDir/$species.$ext", "$tstDir/founder.$ext", force=true)
+            mv("$tstDir/$species.$ext", "$tstDir/founder.$ext", force = true)
         end
         uniq("$tstDir/$species.xy", "$tstDir/founder.xy")
-        rm("$tstDir/$species.xy", force=true)
+        rm("$tstDir/$species.xy", force = true)
     end
     lmp = deserialize("$tstDir/founder.lmp")
 
@@ -42,10 +43,10 @@ function one_trait(;
     ped = deserialize("$tstDir/founder.ped")
     foo, bar = "founder", "rand"
     xy = "$tstDir/$bar.xy"
-    cp("$tstDir/$foo.xy", xy, force=true)
-    
+    cp("$tstDir/$foo.xy", xy, force = true)
+
     @info "  - Operating on generation:"
-    for igrt in 1:nrng
+    for igrt = 1:nrng
         print(" $igrt")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, milk)
@@ -63,16 +64,16 @@ function one_trait(;
 
     act = md"""
     ## Act II: Directional selection on milk
-    
+
     ### Scene 1: AABLUP method
     """
     tprintln(act, "\n")
     foo, bar = "rand", "aablup"
     xy = "$tstDir/$bar.xy"
-    cp("$tstDir/$foo.xy", xy, force=true)
+    cp("$tstDir/$foo.xy", xy, force = true)
     ped = deserialize("$tstDir/$foo.ped")
     @info "  - Operating on generation:"
-    for igrt in 1:nsel
+    for igrt = 1:nsel
         print(" $igrt")
         ids = view(ped, ped.grt .== ped.grt[end], :id) # ID of the last generation
         phenotype!(ids, ped, milk)
@@ -92,12 +93,12 @@ function one_trait(;
     tprintln(act, "\n")
     foo, bar = "rand", "iiblup"
     xy = "$tstDir/$bar.xy"
-    cp("$tstDir/$foo.xy", xy, force=true)
+    cp("$tstDir/$foo.xy", xy, force = true)
     ped = deserialize("$tstDir/$foo.ped")
     G = zeros(nrow(ped), nrow(ped))
     read!("$tstDir/$foo.irm", G)
     @info "  - Operating on generation:"
-    for igrt in 1:nsel
+    for igrt = 1:nsel
         print(" $igrt")
         ids = view(ped, ped.grt .== ped.grt[end], :id) # ID of the last generation
         phenotype!(ids, ped, milk)

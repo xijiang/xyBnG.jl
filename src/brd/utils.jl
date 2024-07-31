@@ -8,11 +8,13 @@ A DataFrame of 4-column for each chromosome is returned:
 - number of loci
 - beginning number of the first locus
 """
-function sumMap(lmp; cM=1e6)
-    lms = DataFrame(chr=Int8[],
-          len=Float64[], # as λ
-          nlc=Int[],
-          bgn=Int[])
+function sumMap(lmp; cM = 1e6)
+    lms = DataFrame(
+        chr = Int8[],
+        len = Float64[], # as λ
+        nlc = Int[],
+        bgn = Int[],
+    )
     bgn = 1
     for grp in groupby(lmp, :chr)
         chr = first(grp).chr
@@ -89,9 +91,11 @@ function pair!(sirs, dams, noff::Int, ped::DataFrame, mate::Symbol)
     nfsb = Int(ceil(noff / length(dams)))
     pa, ma = begin
         if mate == :random
-            repeat(sort(sirs), outer = nhsb)[1:noff], repeat(shuffle(dams), outer = nfsb)[1:noff]
+            repeat(sort(sirs), outer = nhsb)[1:noff],
+            repeat(shuffle(dams), outer = nfsb)[1:noff]
         else
-            repeat(sort(sirs), inner = nhsb)[1:noff], repeat(shuffle(dams), inner = nfsb)[1:noff]
+            repeat(sort(sirs), inner = nhsb)[1:noff],
+            repeat(shuffle(dams), inner = nfsb)[1:noff]
         end
         #sortslices([pa ma], dims=1, by=x -> (x[1], x[2]))
     end
@@ -112,13 +116,13 @@ Linkage map summary `lms` is from `summap`.
 """
 function drop(pg::AbstractArray, og::AbstractArray, pm, lms)
     nf = size(pm)[1]
-    Threads.@threads for id in 1:nf
+    Threads.@threads for id = 1:nf
         ip = pm[id, 1]
         pa = view(pg, :, 2ip-1:2ip)
         zi = vec(view(og, :, 2id - 1))
         gamete(pa, zi, lms)
     end
-    Threads.@threads for id in 1:nf
+    Threads.@threads for id = 1:nf
         im = pm[id, 2]
         ma = view(pg, :, 2im-1:2im)
         zi = vec(view(og, :, 2id))
@@ -139,7 +143,7 @@ function incidence_matrix(df::DataFrame)
     x, a = [ones(n) zeros(n, m)], 2
     for i in eachindex(u)
         for j in eachindex(u[i])
-            x[df[:, i] .== u[i][j], a] .= 1
+            x[df[:, i].==u[i][j], a] .= 1
             a += 1
         end
     end
@@ -155,7 +159,7 @@ function Zmat(nm)
     n, m = length(nm), sum(nm)
     z = sparse(zeros(m, n))
     a = 1
-    for i in 1:n
+    for i = 1:n
         if nm[i]
             z[a, i] = 1
             a += 1
@@ -178,14 +182,18 @@ function animalModel(ft, giv, h², F)
     X = F[p, :]
     Y = collect(skipmissing(ft))
     lhs = if issparse(giv)
-        [X'X X'Z
-         Z'X Z'Z + λ * giv]
+        [
+            X'X X'Z
+            Z'X Z'Z+λ*giv
+        ]
     else
-        Matrix([X'X X'Z
-                Z'X Z'Z + λ * giv])
+        Matrix([
+            X'X X'Z
+            Z'X Z'Z+λ*giv
+        ])
     end
     rhs = vec([X'Y; Z'Y])
     nf = size(X, 2)
     sol = (lhs \ rhs)
-    sol[1:nf], sol[nf + 1 : end]
+    sol[1:nf], sol[nf+1:end]
 end

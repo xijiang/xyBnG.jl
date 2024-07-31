@@ -33,30 +33,30 @@ end
 
 As method phenotype! 01, but only phenotype the ID in `ID`.
 """
-function phenotype!(ID::AbstractVector{T}, ped::DataFrame, trts::Trait...) where T <: Integer
+function phenotype!(
+    ID::AbstractVector{T},
+    ped::DataFrame,
+    trts::Trait...,
+) where {T<:Integer}
     @debug "Generate phenotypes of trait $(join(name.(trts), ", "))"
     for trt in trts
-        if trt.type == Int 
+        if trt.type == Int
             @info "Non continuous trait not implemented"
             continue
         end
         ft = "ft_$(trt.name)"
         gt = "gt_$(trt.name)"
         if !hasproperty(ped, ft)
-            tmp = Vector{Union{Missing, trt.type}}(missing, nrow(ped))
+            tmp = Vector{Union{Missing,trt.type}}(missing, nrow(ped))
             ped[!, ft] = tmp
         end
         sde = sqrt(1.0 / trt.h2 - 1.0 - trt.vd)
         id = zeros(Bool, nrow(ped))
         id[ID] .= true
-        if trt.sex == 2 # all ID have phenotypes
-            tgt = view(ped, id, ft)
-        else
-            id = zeros(Bool, nrow(ped))
-            id[ID] .= true
+        if trt.sex ≠ 2 # not all sexes have phenotype
             id = id .&& ped.sex .== trt.sex
-            tgt = view(ped, id, ft)
         end
+        tgt = view(ped, id, ft)
         copyto!(tgt, rand(Normal(0, sde), sum(id)) + view(ped, id, gt))
     end
     ped

@@ -38,11 +38,26 @@ No range test, as this is an internal function. The valid types are
 `Int8`, `Int16`, `Int32`, `Int64`, `Int128`, `UInt8`, `UInt16`, `UInt32`,
 `UInt64`, `UInt128`, `Float32`, and `Float64`.
 """
-function _type(x::Union{Int8, DataType})
-    vt = ( Int8,  Int16,  Int32,  Int64,  Int128,
-          UInt8, UInt16, UInt32, UInt64, UInt128,
-          Float32, Float64)
-    x isa Int8 ? vt[x] : Int8(findfirst(t -> t == x, vt))
+function _type(x::Union{Int8,DataType})
+    vt = (
+        Int8,
+        Int16,
+        Int32,
+        Int64,
+        Int128,
+        UInt8,
+        UInt16,
+        UInt32,
+        UInt64,
+        UInt128,
+        Float32,
+        Float64,
+    )
+    if x isa Int8
+        vt[x]
+    else
+        Int8(findfirst(t -> t == x, vt))
+    end
 end
 
 """
@@ -80,13 +95,15 @@ mutable struct header
     r::Int8      # 1 for BitArray. 0 for others
     u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding, 3+ else
     function header(;
-        flus  = 'F',  # full, lower triangle, upper triangle, symmetric
+        flus = 'F',  # full, lower triangle, upper triangle, symmetric
         major = 0,
-        type  = 1,
-        u     = 0,
-        )
-        flus ∉ "FLUS" || major ∉ 0:1 || type ∉ 1:_nvldtype || u < 0 && 
-            error("Invalid header")
+        type = 1,
+        u = 0,
+    )
+        flus ∉ "FLUS" ||
+            major ∉ 0:1 ||
+            type ∉ 1:_nvldtype ||
+            u < 0 && error("Invalid header")
         new('x', 'y', ' ', flus, major, type, 0, u)
     end
 end
@@ -96,9 +113,15 @@ end
 
 Check if two headers are equal.
 """
-function isEqual(h1::T, h2::T) where T <: header
-    h1.x == h2.x && h1.y == h2.y && h1.v == h2.v && h1.flus == h2.flus &&
-        h1.major == h2.major && h1.type == h2.type && h1.r == h2.r && h1.u == h2.u
+function isEqual(h1::T, h2::T) where {T<:header}
+    h1.x == h2.x &&
+        h1.y == h2.y &&
+        h1.v == h2.v &&
+        h1.flus == h2.flus &&
+        h1.major == h2.major &&
+        h1.type == h2.type &&
+        h1.r == h2.r &&
+        h1.u == h2.u
 end
 
 """
@@ -108,7 +131,7 @@ Initialize an `xy` file with header `hdr` and dimensions `nrows` and `ncols`.
 The matrix part is filled with zeros.
 """
 function init!(xy::AbstractString, hdr::header, nrows::Int64, ncols::Int64)
-    isfile(xy) && rm(xy, force=true)
+    isfile(xy) && rm(xy, force = true)
     block = 24
     nbyte = sizeof(_type(hdr.type))
     if hdr.flus == Int8('F')
@@ -118,7 +141,13 @@ function init!(xy::AbstractString, hdr::header, nrows::Int64, ncols::Int64)
         block += nrows * (nrows + 1) ÷ 2 * nbyte
     end
 
-    if Sys.islinux() || Sys.isbsd() || Sys.isapple() || Sys.isfreebsd() || Sys.isnetbsd() || Sys.isopenbsd() || Sys.isunix()
+    if Sys.islinux() ||
+       Sys.isbsd() ||
+       Sys.isapple() ||
+       Sys.isfreebsd() ||
+       Sys.isnetbsd() ||
+       Sys.isopenbsd() ||
+       Sys.isunix()
         run(pipeline(`head -c $block /dev/zero`, xy))
     elseif Sys.iswindows()
         run(`fsutil file createnew $xy $block`)
@@ -144,7 +173,12 @@ function header(xy::AbstractString)
     sz ≤ 24 && return nothing
     hdr = header()
     read!(xy, Ref(hdr))
-    (hdr.x == Int8('x') && hdr.y == Int8('y') && hdr.v == Int8(' ') && 0 < hdr.type ≤ _nvldtype) || return nothing
+    (
+        hdr.x == Int8('x') &&
+        hdr.y == Int8('y') &&
+        hdr.v == Int8(' ') &&
+        0 < hdr.type ≤ _nvldtype
+    ) || return nothing
     nrows, ncols = dim(xy)
     nbyte = sizeof(_type(hdr.type))
     if hdr.flus == Int8('F')
@@ -191,7 +225,8 @@ Extract a submatrix from `ixy` and return a matrix in memory.
 """
 function sub(ixy::AbstractString, rows::AbstractVector, cols::AbstractVector)
     hdr = header(ixy)
-    length(rows) * length(cols) * sizeof(_type(hdr.type)) ≤ Util.memavail() || error("Submatrix too large to fit in memory.")
+    length(rows) * length(cols) * sizeof(_type(hdr.type)) ≤ Util.memavail() ||
+        error("Submatrix too large to fit in memory.")
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     hdr.flus == Int8('F') || error("Needs to be a full matrix.")
     m, n = dim(ixy)
@@ -212,8 +247,13 @@ Extract a submatrix from `ixy` and write sub to `oxy`.
   - Rows and columns can be not sorted, but should be in range.
   - This function deals with full matrix.
 """
-function sub(ixy::AbstractString, rows::T, cols::T, oxy::AbstractString) where T <: AbstractVector{Int64}
-    isfile(oxy) && rm(oxy, force=true)
+function sub(
+    ixy::AbstractString,
+    rows::T,
+    cols::T,
+    oxy::AbstractString,
+) where {T<:AbstractVector{Int64}}
+    isfile(oxy) && rm(oxy, force = true)
     hdr = header(ixy)
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     hdr.flus == Int8('F') || error("Needs to be a full matrix.")
@@ -240,8 +280,8 @@ Extract a triangle submatrix from `ixy` of a triangle matrix and write sub to `o
   - This function deals with triangle matrix.
   - Bear in mind that matrix is stored in column major order.
 """
-function sub(ixy::S, rows::T, oxy::S) where {S <: AbstractString, T <: AbstractVector}
-    isfile(oxy) && rm(oxy, force=true)
+function sub(ixy::S, rows::T, oxy::S) where {S<:AbstractString,T<:AbstractVector}
+    isfile(oxy) && rm(oxy, force = true)
     hdr = header(ixy)
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     hdr.flus == Int8('F') && error("Needs to be a triangle matrix.")
@@ -254,7 +294,7 @@ function sub(ixy::S, rows::T, oxy::S) where {S <: AbstractString, T <: AbstractV
         open(oxy, "w") do io
             write(io, Ref(hdr))
             write(io, [len, len])
-            for i in 1:len
+            for i = 1:len
                 if hdr.flus == Int8('U')
                     seek(ii, 24 + rows[i] * (rows[i] - 1) ÷ 2 * nbyte)
                     read!(ii, tvc[1:rows[i]])
@@ -291,11 +331,11 @@ function mat(m::AbstractMatrix, oxy::AbstractString; flus = 'F')
             write(io, Ref(hdr))
             write(io, [x, y])
             if flus == 'U'
-                for i in 1:x
+                for i = 1:x
                     write(io, m[1:i, i])
                 end
             else
-                for i in 1:x
+                for i = 1:x
                     write(io, m[i:end, i])
                 end
             end
@@ -320,15 +360,15 @@ function mat(xy::AbstractString)
             read!(io, m)
         else
             if hdr.flus == Int8('U')
-                for i in 1:x
+                for i = 1:x
                     read!(io, view(m, 1:i, i))
                 end
             else
-                for i in 1:x
+                for i = 1:x
                     read!(io, view(m, i:x, i))
                 end
                 if hdr.flus == Int8('S')
-                    for i in 1:x-1
+                    for i = 1:x-1
                         copy!(view(m, i, i+1:x), view(m, i+1:x, i))
                     end
                 end
@@ -344,7 +384,7 @@ end
 Append matrix `oxy` to `ixy`. The two files must have the same header. Their
 number of rows must be the same. This applies only to full matrix.
 """
-function append!(ixy::T, oxy::T) where T <: AbstractString
+function append!(ixy::T, oxy::T) where {T<:AbstractString}
     hi, ho = header(ixy), header(oxy)
     isEqual(hi, ho) || error("Header of $ixy and $oxy are different")
     hi.flus == Int8('F') || error("Needs to be a full matrix")
@@ -382,8 +422,9 @@ Merge two `xy` files `ixy` and `jxy` and write to `oxy`.
 - The merge dimension must be same.
 - This applies only to full matrix.
 """
-function merge(ixy::T, jxy::T, oxy::T; horizontal=true) where T <: AbstractString
-    (oxy == ixy || oxy == jxy) && error("Target file should be different from the source files.")
+function merge(ixy::T, jxy::T, oxy::T; horizontal = true) where {T<:AbstractString}
+    (oxy == ixy || oxy == jxy) &&
+        error("Target file should be different from the source files.")
     hi, hj = header(ixy), header(jxy)
     isEqual(hi, hj) || error("Header of $ixy and $jxy are different")
     hi.flus == Int8('F') || error("Needs to be a full matrix")
@@ -405,7 +446,7 @@ function merge(ixy::T, jxy::T, oxy::T; horizontal=true) where T <: AbstractStrin
             write(io, [mi + mj, ni])
             a = Mmap.mmap(ixy, Matrix{type}, (mi, ni), 24)
             b = Mmap.mmap(jxy, Matrix{type}, (mj, nj), 24)
-            for i in 1:ni
+            for i = 1:ni
                 write(io, a[:, i])
                 write(io, b[:, i])
             end
@@ -420,11 +461,12 @@ Code the SNP alleles unique values in `ixy` and write to `oxy`. The last bit
 store the SNP allele types. The matrix element may increase size. Use
 `isodd.(mat)` to retrieve the SNP allele types.
 """
-function code(ixy::T, oxy::T) where T <: AbstractString
+function code(ixy::T, oxy::T) where {T<:AbstractString}
     hdr = header(ixy)
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     (x, y) = dim(ixy)
-    hdr.flus == Int8('F') && hdr.type == 1 && y % 2 == 0 || error("Needs to be a haplotype matrix")
+    hdr.flus == Int8('F') && hdr.type == 1 && y % 2 == 0 ||
+        error("Needs to be a haplotype matrix")
     hdr.type = Int8.(ceil(log2(y) / 8))
 
     open(oxy, "w") do io
@@ -432,7 +474,7 @@ function code(ixy::T, oxy::T) where T <: AbstractString
         write(io, [x, y])
         imt = Mmap.mmap(ixy, Matrix{UInt8}, (x, y), 24)
         inc = 2
-        for i in 1:y
+        for i = 1:y
             write(io, _type(hdr.type).(imt[:, i] .+ inc))
             inc += 2
         end
@@ -445,7 +487,7 @@ end
 Transpose matrix `ixy` and write to `oxy`.
 For half matrix, `U` is transposed to `L`. `L` and `S` are transposed to `U`.
 """
-function transpose!(ixy::T, oxy::T) where T <: AbstractString
+function transpose!(ixy::T, oxy::T) where {T<:AbstractString}
     hdr = header(ixy)
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     (x, y) = dim(ixy)
@@ -479,11 +521,12 @@ end
 
 Convert SNP alleles to genotypes and write to `oxy`.
 """
-function snp2gt(ixy::T, oxy::T) where T <: AbstractString
+function snp2gt(ixy::T, oxy::T) where {T<:AbstractString}
     hdr = header(ixy)
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     (x, y) = dim(ixy)
-    hdr.flus == Int8('F') && hdr.type == 1 && y % 2 == 0 || error("Needs to be a haplotype matrix")
+    hdr.flus == Int8('F') && hdr.type == 1 && y % 2 == 0 ||
+        error("Needs to be a haplotype matrix")
     open(oxy, "w") do io
         write(io, Ref(hdr))
         write(io, [x, y ÷ 2])
@@ -500,6 +543,10 @@ Check if the matrix is a full matrix, i.e., not a triangle one.
 """
 function isfull(hdr::header)
     hdr.flus == Int8('F')
+end
+
+function isfull(hdr::Nothing)
+    @error "Header is nothing"
 end
 
 """
@@ -525,7 +572,7 @@ end
 
 Check if the matrix is a haplotype matrix.
 """
-function ishap(hdr::header, dm::Tuple{Int, Int})
+function ishap(hdr::header, dm::Tuple{Int,Int})
     _, n = dm
     locMajor(hdr) && n % 2 == 0
 end
@@ -537,10 +584,13 @@ Check if the matrix is a SNP matrix.
 """
 function issnp(fxy::AbstractString)
     hdr, dm = header(fxy), dim(fxy)
-    isfull(hdr) && isbyte(hdr) && ishap(hdr, dm) && begin
-        gt = Mmap.mmap(fxy, Matrix{Int8}, dm, 24)
-        Set(gt) == Set([0, 1])
-    end
+    isfull(hdr) &&
+        isbyte(hdr) &&
+        ishap(hdr, dm) &&
+        begin
+            gt = Mmap.mmap(fxy, Matrix{Int8}, dm, 24)
+            Set(gt) == Set([0, 1])
+        end
 end
 
 """
