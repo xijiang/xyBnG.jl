@@ -74,20 +74,20 @@ function randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
 end
 
 """
-    aaocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    aaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `A` for both EBV and constraint on `foo`.xy
 and `foo`.ped in directory `test` for `ngn` generations. SNP linkage information
 are in DataFrame `lmp`. The results are saved in `bar`.xy, `bar`.ped in
 directory `test`. The selection is on a single trait `trait` with fixed effects
-`fixed`, which is a column name vector in pedigree DataFrame. The `noff` pair
-of parents are sampled according to their contribution weights. The constraint
-ΔF is `dF`. `F0` is the inbreeding coefficient of the `foo` population.
+`fixed`, which is a column name vector in pedigree DataFrame. Parents are
+sampled according to `plan`. The constraint ΔF is `dF`. `F0` is the inbreeding
+coefficient of the `foo` population.
 
 
 See also [`randbrd`](@ref), [`iiocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function aaocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function aaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection AABLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -99,7 +99,7 @@ function aaocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -107,22 +107,21 @@ function aaocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
 end
 
 """
-    iiocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `IBD` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
 SNP linkage information are in DataFrame `lmp`. The results are saved in
 `bar`.xy, `bar`.ped in directory `test`. The selection is on a single trait
 `trait` with fixed effects `fixed`, which is a column name vector in pedigree
-DataFrame. The `noff` pair of parents are sampled according to their
-contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
-coefficient of the `foo` population.
+DataFrame. Parents are sampled according to `plan`. The constraint ΔF is `dF`.
+`F0` is the inbreeding coefficient of the `foo` population.
 
 This function uses the TM1997 algorithm for OCS.
 
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function iiocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection IIBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -136,7 +135,7 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
         mid = nrow(ped)
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
     end
@@ -145,22 +144,21 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
 end
 
 """
-    iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    iidos(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `IBD` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
 SNP linkage information are in DataFrame `lmp`. The results are saved in
 `bar`.xy, `bar`.ped in directory `test`. The selection is on a single trait
 `trait` with fixed effects `fixed`, which is a column name vector in pedigree
-DataFrame. The `noff` pair of parents are sampled according to their
-contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
-coefficient of the `foo` population.
+DataFrame. Parents are sampled according to `plan`. The constraint ΔF is `dF`.
+`F0` is the inbreeding coefficient of the `foo` population.
 
 This function uses the TM2024 algorithm for OCS.
 
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`ggocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function iidos(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection DOSc for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -174,7 +172,7 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
         mid = nrow(ped)
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0, ocs = TM2024)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0, ocs = TM2024)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
     end
@@ -182,6 +180,7 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
     serialize("$test/$bar.ped", ped)
 end
 
+#=
 """
     tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
 Optimal contribution selection with `G` relationship matrix for both EBV and
@@ -189,9 +188,8 @@ constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
 SNP linkage information are in DataFrame `lmp`. The results are saved in
 `bar`.xy, `bar`.ped in directory `test`. The selection is on a single trait
 `trait` with fixed effects `fixed`, which is a column name vector in pedigree
-DataFrame. The `noff` pair of parents are sampled according to their
-contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
-coefficient of the `foo` population.
+DataFrame. Parent are sampled according to `plan`. The constraint ΔF is `dF`.
+`F0` is the inbreeding coefficient of the `foo` population.
 
 This function uses the TM1997 algorithm for OCS. As the constraint matrix is
 using GRM, which has already considered the allele frequency changes, hence
@@ -200,7 +198,7 @@ option `ong` is set to `true`.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function tgocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection TGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -212,23 +210,23 @@ function tgocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0, ong = true)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0, ong = true)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
     serialize("$test/$bar.ped", ped)
 end
+=#
 
 """
-    ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `G` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
 SNP linkage information are in DataFrame `lmp`. The results are saved in
 `bar`.xy, `bar`.ped in directory `test`. The selection is on a single trait
 `trait` with fixed effects `fixed`, which is a column name vector in pedigree
-DataFrame. The `noff` pair of parents are sampled according to their
-contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
-coefficient of the `foo` population.
+DataFrame. Parents are sampled according to `plan`. The constraint ΔF is `dF`.
+`F0` is the inbreeding coefficient of the `foo` population.
 
 This function uses the TM1997 algorithm for OCS. As the constraint matrix is
 using GRM, which has already considered the allele frequency changes, hence
@@ -237,7 +235,7 @@ option `ong` is set to `true`.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection GGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -249,7 +247,7 @@ function ggocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -263,8 +261,8 @@ relationship matrix for constraint on `foo`.xy and `foo`.ped in directory `test`
 for `ngn` generations. SNP linkage information are in DataFrame `lmp`. The
 results are saved in `bar`.xy, `bar`.ped in directory `test`. The selection is
 on a single trait `trait` with fixed effects `fixed`, which is a column name
-vector in pedigree DataFrame. The `noff` pair of parents are sampled according
-to their contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
+vector in pedigree DataFrame. Parents are sampled according to `plan`. The
+constraint ΔF is `dF`. `F0` is the inbreeding
 coefficient of the `foo` population.
 
 This function uses the TM1997 algorithm for OCS.
@@ -272,7 +270,7 @@ This function uses the TM1997 algorithm for OCS.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`igocs`](@ref).
 """
-function agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function agocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection AGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -285,7 +283,7 @@ function agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         G = nrm(ped)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -293,22 +291,22 @@ function agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
 end
 
 """
-    igocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `G` relationship matrix for EBV, `IBD`
 relationship matrix for constraint on `foo`.xy and `foo`.ped in directory `test`
 for `ngn` generations. SNP linkage information are in DataFrame `lmp`. The
 results are saved in `bar`.xy, `bar`.ped in directory `test`. The selection is
 on a single trait `trait` with fixed effects `fixed`, which is a column name
-vector in pedigree DataFrame. The `noff` pair of parents are sampled according
-to their contribution weights. The constraint ΔF is `dF`. `F0` is the inbreeding
-coefficient of the `foo` population.
+vector in pedigree DataFrame. Parents are sampled according to `plan`. The
+constraint ΔF is `dF`. `F0` is the inbreeding coefficient of the `foo`
+population.
 
 This function uses the TM1997 algorithm for OCS.
 
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`agocs`](@ref).
 """
-function igocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection IGBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -321,7 +319,7 @@ function igocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
         Predict!(ids, ped, fixed, giv, trait)
         mid = nrow(ped)
         g22 = irm(xy, lmp.chip, mid+1-length(ids):mid)
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
@@ -413,32 +411,6 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
         ng = Select(ids, plan, ped, trait)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
-    end
-    println()
-    serialize("$test/$bar.ped", ped)
-end
-
-function ppocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
-    @info "  - Directional selection AABLUP for $ngn generations"
-    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force = true)
-    for ign = 1:ngn
-        print(" $ign")
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
-        phenotype!(ids, ped, trait)
-
-        # new lines
-        Conn.xy.tovcf(xy, "$test/$bar.vcf", lmp)
-        run(`phasedibd_julia.R $test $bar.vcf ibd.bin`)
-        G = zeros(nrow(ped), nrow(ped))
-        read!("$test/ibd.bin", G)
-        # new lines end here
-
-        giv = inv(G)
-        Predict!(ids, ped, fixed, giv, trait)
-        g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, trait, noff, dF, ign; F0 = F0)
-        reproduce!(ng, ped, xy, lmp, trait)
     end
     println()
     serialize("$test/$bar.ped", ped)

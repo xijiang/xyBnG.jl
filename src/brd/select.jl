@@ -36,7 +36,6 @@ end
 
 """
     Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, trt::Trait) where T <: Integer
-
 Selection `ID` on their EBV of trait `trt` in DataFrame `ped` according to plan
 `plan`.
 """
@@ -59,7 +58,10 @@ function Select(
 end
 
 """
-    Select(ID::AbstractVector{T}, plan::Plan, ped::DataFrame, dic::Dict; rev = true) where T <: Integer
+    Select(
+        ID::AbstractVector{T}, plan::Plan, 
+        ped::DataFrame, dic::Dict; rev = true
+    ) where T <: Integer
 
 Selection `ID` on their weighted EBV of traits in dictionary `dic`.
 """
@@ -88,10 +90,12 @@ function Select(
 end
 
 """
-    Select(ID::AbstractVector{T}, ped::DataFrame, 
-        rs::AbstractMatrix{Float64}, trt::Trait, 
-        ocs::Function, F0::Float64, dF::Float64,
-        igrt::Int; rev = true) where T <: Integer
+    Select(
+        ID::AbstractVector{T}, ped::DataFrame,
+        rs::AbstractMatrix{Float64}, trt::Trait,
+        noff::Int, dF::Float64, igrt::Int;
+        F0 = 0.0, ocs = TM1997, rev = true,
+    ) where {T<:Integer}
 Optimal contribution selection on trait `trt` in DataFrame `ped` with
 relationship matrix `rs` and constraint function `ocs`. The `ID` is the
 individuals to select from. `F0` is the population inbreeding coefficient before
@@ -111,22 +115,12 @@ function Select(
     igrt::Int;
     F0 = 0.0,
     ocs = TM1997,
-    ong = false,
     rev = true,
 ) where {T<:Integer}
     @debug "Optimal contribution selection"
-    dat = begin
-        tmp = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
-        # Standardize the EBV
-        vs = view(tmp, tmp.sex .== 1, :idx)
-        vd = view(tmp, tmp.sex .== 0, :idx)
-        vs ./= std(vs)
-        vd ./= std(vd)
-        rev || (dat.idx *= -1) # select lowest
-        dat
-    end
+    dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
 
-    K = ong ? 2dF : konstraint(dF, F0, igrt)
+    K = konstraint(dF, F0, igrt)
     c = ocs(dat, rs, K)  # this is to select the highest, or equivalently rev = true
     cs = ped.sex[ID] .== 1 # sire candidates
     cd = ped.sex[ID] .== 0 # dam candidates
@@ -137,6 +131,70 @@ function Select(
     nd = noff - ns
     DataFrame(
         id = nrow(ped)+1:nrow(ped)+noff,
+        sire = pm[:, 1],
+        dam = pm[:, 2],
+        sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
+        grt = ped.grt[end] + 1,
+    )
+end
+
+"""
+    cwno(c, w, n, o)
+Select no more than `n` unique ID from candidates `c` with weights `w`, to
+produce `o` offspring.
+"""
+function cwno(c, w, n, o)
+    if length(c) ≤ n
+        return sample(c, Weights(w), o)
+    end
+    s = Set{Int}()
+    r = Int[]
+    while length(r) < o
+        i = sample(c, Weights(w))
+        length(s) == n && i ∉ s && continue
+        push!(r, i)
+        push!(s, i)
+    end
+    r
+end
+
+"""
+    Select(
+        ID::AbstractVector{T}, plan::Plan, ped::DataFrame,
+        rs::AbstractMatrix{Float64}, trt::Trait, dF::Float64,
+        igrt::Int;
+        F0 = 0.0, ocs = TM1997, rev = true,
+    ) where {T<:Integer}
+Currently, I only use random mating for OCS. Will implement other mating
+schemes later.
+"""
+function Select(
+    ID::AbstractVector{T},
+    plan::Plan,
+    ped::DataFrame,
+    rs::AbstractMatrix{Float64},
+    trt::Trait,
+    dF::Float64,
+    igrt::Int;
+    F0 = 0.0,
+    ocs = TM1997,
+    rev = true,
+) where {T<:Integer}
+    @debug "Optimal contribution selection"
+    dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
+    rev || (dat.idx .*= -1)
+
+    K = konstraint(dF, F0, igrt)
+    c = ocs(dat, rs, K)  # this is to select the highest, or equivalently rev = true
+    cs = ped.sex[ID] .== 1 # sire candidates
+    cd = ped.sex[ID] .== 0 # dam candidates
+    pa = cwno(ID[cs], c[cs], plan.npa, plan.noff)
+    ma = cwno(ID[cd], c[cd], plan.nma, plan.noff)
+    pm = sortslices([pa ma], dims = 1, by = x -> (x[1], x[2]))
+    ns = plan.noff ÷ 2
+    nd = plan.noff - ns
+    DataFrame(
+        id = nrow(ped)+1:nrow(ped)+plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
         sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
