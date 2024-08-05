@@ -46,7 +46,8 @@ function dosblup(;
     end
     sname = desc[1]
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
-    schemes = (aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup)
+    #schemes = (aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup)
+    schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
 
     F0 = 0.027
 
@@ -69,7 +70,7 @@ function dosblup(;
             if occursin("blup", bar)
                 scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
             else
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan.noff, dF, F0)
+                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan, dF, F0)
             end
             summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait, nrng + 1)
             Sum.savesum("$test/summary.ser", summary)
