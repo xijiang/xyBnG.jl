@@ -225,7 +225,7 @@ end
 """
     corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
 Calculate the correlation between the off-diagonal elements of the `A`, `G`, and
-`IBD` matrices. G and IBD are calculated with the chip loci incidated in the
+`IBD` matrices. G and IBD are calculated with the chip loci indicated in the
 `DataFrame` stored in the `fmp` file.
 """
 function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)

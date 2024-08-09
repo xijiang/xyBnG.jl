@@ -28,5 +28,6 @@ include("xps/one-trait.jl")
 include("xps/devel.jl")
 include("xps/dosblup.jl")
 include("xps/o3cs.jl")
+include("xps/rumigen.jl")
 
 end # module xps
