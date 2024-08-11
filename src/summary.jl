@@ -31,9 +31,9 @@ end
 
 """
     FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Float64})
-This function returns the allele frequencies of `mat`, population selection
-`Ceiling` and `Floor`, and genic variance by generation as indicated by `grt`
-and QTL additive effects `eff`.
+This function returns the allele frequencies of haplotype matrix `mat`,
+population selection `Ceiling` and `Floor`, and genic variance by generation as
+indicated by `grt` and QTL additive effects `eff`.
 """
 function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Float64})
     nlc = size(mat, 1)
@@ -41,7 +41,7 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
     ng = length(ug)
     frq = zeros(Int16, nlc, ng)
     flr, clg, vgn = zeros(ng), zeros(ng), zeros(ng)
-    a2 = 2eff .* eff
+    a2 = 2eff .* eff  # => 2a²
     pp, nn = eff .> 0, eff .< 0
     aa, bb = sum(eff[nn]), sum(eff[pp])
     for i = 1:ng
@@ -50,13 +50,13 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
         nhp = sum(grt .== ug[i])
         p = frq[:, i] / nhp
         q = 1 .- p
-        vgn[i] = sum(p .* q .* a2) # genic variance
+        vgn[i] = sum(p .* q .* a2) # genic variance = ∑2pqa²
         t = nn .&& frq[:, i] .== nhp
         flr[i] = aa - sum(eff[t])
         t = pp .&& frq[:, i] .== 0
         clg[i] = bb - sum(eff[t])
     end
-    frq, flr, clg, vgn
+    frq, 2flr, 2clg, vgn
 end
 
 """
@@ -69,9 +69,8 @@ function snphet(q::AbstractVector{Float64})
 end
 
 """
-    xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
-Summarize the simulation results in `xy` and `ped` files. `ssg` is the selection
-starting generation.
+    xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
+Summarize the simulation results in `xy` and `ped` files.
 
 It is supposed that filename `xy` is of the pattern `repeat-scheme.xy`. Repeat
 number and scheme are to be stored in the result DataFrame.
@@ -99,7 +98,7 @@ number and scheme are to be stored in the result DataFrame.
 - `ceiling`: ceiling of the population
 
 """
-function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
+function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     haps = XY.mapit(xy)
     ped.iF = tibd(view(haps, lmp.chip, :))
     frq, flr, clg, vgn =
@@ -158,9 +157,9 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
     covdq = zeros(ng)       # covariance between q₀ and qᵢ
     covdq2 = zeros(ng)      # covariance between q₀ corrected and qᵢ
 
-    q0 = q[:, ssg]
+    q0 = q[:, 1]
     H0 = snphet(q0)
-    for i = ssg+1:ng
+    for i = 1:ng
         loci = frq[:, i] .≠ 2ss.nid[i] .&& frq[:, i] .≠ 0
         factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
         δq = (q[loci, i] .- q0[loci]) ./ factor
@@ -185,11 +184,10 @@ function xysum(
     xy::AbstractString,
     lmp::AbstractString,
     trait::Trait,
-    ssg::Int,
 )
     pd = deserialize(ped)
     lp = deserialize(lmp)
-    xysum(pd, xy, lp, trait, ssg)
+    xysum(pd, xy, lp, trait)
 end
 
 """
@@ -201,10 +199,9 @@ function xysum(
     xy::AbstractString,
     lmp::DataFrame,
     trait::Trait,
-    ssg::Int,
 )
     pd = deserialize(ped)
-    xysum(pd, xy, lmp, trait, ssg)
+    xysum(pd, xy, lmp, trait)
 end
 
 """
