@@ -107,7 +107,7 @@ function rumigen(;
             else
                 scheme(test, foo, bar, lmp, nsel, trait, fixed, pln2, dF, F0)
             end
-            summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait, nrng + 1)
+            summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
             Sum.savesum("$test/summary.ser", summary)
         end
         if !keep
@@ -125,7 +125,7 @@ end
     run_rumigen(op)
 Run the `rumigen` function to repeat previous results.
 """
-function run_rumigen()
+function run_rumigen(op)
     if op == 1
         # Simulation started: 2024-08-09T10:55:59.562
         # Simulation finised: 2024-08-11T20:19:59.645
