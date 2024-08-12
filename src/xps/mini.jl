@@ -65,7 +65,7 @@ function mini(;
         uniq("$test/snp.xy", "$test/founder.xy")
         lmp = deserialize("$test/founder.lmp")
         # The starting point: random selection
-        randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan; ibd = true)
+        randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan)
         for scheme in cullSchemes
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)

@@ -120,3 +120,25 @@ function rumigen(;
         println(io, "Ended: ", time())
     end
 end
+
+"""
+    run_rumigen(op)
+Run the `rumigen` function to repeat previous results.
+"""
+function run_rumigen()
+    if op == 1
+        # Simulation started: 2024-08-09T10:55:59.562
+        # Simulation finised: 2024-08-11T20:19:59.645
+        rumigen(data = "/mnt/a/store/xybng", testDir = "rumigen/01", nrpt = 100)
+    elseif op == 2
+        rumigen(
+            data = "/mnt/a/store/xybng",
+            testDir = "rumigen/02",
+            nrpt = 100,
+            nrng = 0,
+            nsel = 10,
+        )
+    else
+        @info "1 ≤ op ≤ 2. No operation is performed."
+    end
+end
