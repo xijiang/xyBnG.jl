@@ -96,7 +96,10 @@ number and scheme are to be stored in the result DataFrame.
 - `genicv`: genic variance
 - `floor`: floor of the population, i.e., the lowest mean TBV
 - `ceiling`: ceiling of the population
-
+- `covdq`: covariance between q₀ and qₜ
+- `covdq2`: covariance between q₀ corrected and qₜ
+- `fhet`: inbreeding by homozygosity
+- `fdrift`: inbreeding by drift
 """
 function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     haps = XY.mapit(xy)
@@ -159,14 +162,14 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
 
     q0 = q[:, 1]
     H0 = snphet(q0)
+    loci = lmp.dark .&& 0 < frq[:, i] < 2ss.nid[i]
+    factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
+    qa = q0[loci] ./ factor
+    qb = (q0[loci] .- 0.5) ./ factor
     for i = 1:ng
-        loci = frq[:, i] .≠ 2ss.nid[i] .&& frq[:, i] .≠ 0
-        factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
-        δq = (q[loci, i] .- q0[loci]) ./ factor
-        q₀ = q0[loci] ./ factor
-        covdq[i] = cov(δq, q₀)
-        q₀ = (q0[loci] .- 0.5) ./ factor
-        covdq2[i] = cov(δq, q₀)
+        δq = (q[loci, i] .- q0[loci]) / factor
+        covdq[i] = cov(δq, qa)
+        covdq2[i] = cov(δq, qb)
         Ht = snphet(q[:, i])
         fhet[i] = (H0 - Ht) / H0
         fdrift[i] = 2var(q[:, i] - q0) / H0
@@ -176,15 +179,10 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
 end
 
 """
-    xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait, ssg::Int)
+    xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait)
 Summarize the simulation results in file `ped`, `xy` and `lmp` files.
 """
-function xysum(
-    ped::AbstractString,
-    xy::AbstractString,
-    lmp::AbstractString,
-    trait::Trait,
-)
+function xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait)
     pd = deserialize(ped)
     lp = deserialize(lmp)
     xysum(pd, xy, lp, trait)
@@ -194,12 +192,7 @@ end
     xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
 Summarize the simulation results in `xy` and `ped` files. `lmp` is in memory already.
 """
-function xysum(
-    ped::AbstractString,
-    xy::AbstractString,
-    lmp::DataFrame,
-    trait::Trait,
-)
+function xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::Trait)
     pd = deserialize(ped)
     xysum(pd, xy, lmp, trait)
 end
@@ -279,6 +272,26 @@ function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
     (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
     (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
     return [c1, c2, c3, c4, c5, c6]
+end
+
+"""
+    resum(dir::AbstractString)
+This is an amendment to the `xysum` function in directory `dir`, where the data
+are kept. This is needed when the formulae of some indices are changed.
+"""
+function resum(dir::AbstractString, trait::Trait)
+    isfile("$dir/re-summary.ser") && rm("$dir/re-summary.ser", force = true)
+    lmp = deserialize("$dir/founder.lmp")
+    psm = deserialize("$dir/summary.ser")
+    nrpt, schemes = psm.repeat[end], unique(psm.scheme)
+    for i = 1:nrpt
+        for scheme in schemes
+            xy = "$dir/$i-$scheme.xy"
+            ped = deserialize("$dir/$i-$scheme.ped")
+            ss = xysum(ped, xy, lmp, trait)
+            savesum("$dir/re-summary.ser", ss)
+        end
+    end
 end
 
 end # module Sum

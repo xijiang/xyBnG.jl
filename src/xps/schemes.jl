@@ -32,6 +32,11 @@ function savepar(scenario, file)
             println(iom)
             println(iom, "[$k]")
             println(iom, v)
+        elseif occursin("Tuple", string(typeof(v)))
+            println(iom, "\n[Schemes]")
+            for s in v
+                println(iom, "         ", string(s))
+            end
         else
             println(ios, lpad(k, n), ": ", v)
         end

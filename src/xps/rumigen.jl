@@ -53,6 +53,7 @@ function rumigen(;
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
     isdir("$test") || mkpath("$test")
+    schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
     scenario = (
         Data = data,
         BaseDir = baseDir,
@@ -67,6 +68,7 @@ function rumigen(;
         Fixed = fixed,
         ΔF = dF,
         Nrpt = nrpt,
+        Schemes = schemes,
     )
     savepar(scenario, "$test/scenario.par")
     isfile("$test/summary.ser") && rm("$test/summary.ser", force = true)
@@ -81,7 +83,6 @@ function rumigen(;
     end
     sname = desc[1]
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
-    schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
     pln2 = Plan(50, 50, 200)
 
     F0 = 0.027

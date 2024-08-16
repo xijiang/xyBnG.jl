@@ -75,3 +75,64 @@ function konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
         2(1 - (1 - k₀) * (1 - dF)^(igrt + 1))
     end
 end
+
+"""
+"""
+function OC_fixsex2(EBV, A, K, c2)
+    # c2=fixed contribution of females (sums to 1)
+    #note: A is relationship matrix of all animals (A11=relationship of candidates; A22=relationship of selected females)
+    c2 = 0.5 * c2 / sum(c2)
+
+    n = size(EBV, 1)
+    n1 = n
+    n2 = size(c2, 1)
+    ind = collect(1:n)
+    # println(" Ncandidates           = ", n)
+    # println(" Nfixed_contributions  =", n2)
+    # println(" contraint relationship= ", K)
+    A12c2 = A[1:n1, n1+1:n1+n2] * c2
+    c = zeros(n)
+    ierr = 0
+    for it = 1:1000
+        u = EBV[ind]
+        AI = inv(A[ind, ind])
+        sumAI = sum(AI)
+        AIA12 = AI * A[ind, n1+1:n1+n2]
+        A22_11 = A[n1+1:n1+n2, n1+1:n1+n2] - A[n1+1:n1+n2, ind] * AIA12
+        denominat = 4 * (K - c2' * A22_11 * c2 - ((sum(AIA12 * c2) + 0.5)^2) / sumAI)
+        numerat = u' * AI * u - sum(u' * AI)^2 / sumAI
+        if (denominat <= 0.0)
+            println(
+                "Cannot achieve constraint ",
+                K,
+                " Minimisation of relationships ",
+                size(ind),
+            )
+            ierr = 0
+            c = 0.5 * sum(AI, dims = 2) / sumAI  #minimise
+        else
+            numerat = max(numerat, 1.e-10)
+            # println(" denominat ",denominat)
+            # println(" numerator ",numerat)
+            lamb02 = numerat / denominat
+            lamb0 = sqrt(lamb02)
+            println(" lamb0 ", lamb0)
+            lamb = (sum(AI * (u - 2 * lamb0 * A12c2[ind])) - lamb0) / sumAI
+            c = AI * (u - 2 * lamb0 * A12c2[ind] .- lamb) / (2 * lamb0)
+        end
+        ind2 = findall(c .>= 0.0)
+        println(" iter ", it, " still in solution ", length(ind2), " (old= ", length(ind))
+        if (length(ind2) == length(ind))
+            #            println(" solution found; n=",length(ind))
+            break
+        end
+        ind = ind[ind2]
+    end
+
+    if (ierr == 0)
+        cc = zeros(n)
+        cc[ind] = c
+        println("  cAc-2cA12c2= ", c' * A[ind, ind] * c .- 2 * cc' * A12c2, " K=  ", K)
+        return 2 * cc
+    end
+end
