@@ -126,19 +126,18 @@ end
     run_rumigen(op)
 Run the `rumigen` function to repeat previous results.
 """
-function run_rumigen(op)
+function run_rumigen(op; dir = "/mnt/a/store/xybng")
     if op == 1
         # Simulation started: 2024-08-09T10:55:59.562
         # Simulation finised: 2024-08-11T20:19:59.645
-        rumigen(data = "/mnt/a/store/xybng", testDir = "rumigen/01", nrpt = 100)
+        rumigen(data = dir, testDir = "rumigen/01", nrpt = 100)
     elseif op == 2
-        rumigen(
-            data = "/mnt/a/store/xybng",
-            testDir = "rumigen/02",
-            nrpt = 100,
-            nrng = 0,
-            nsel = 10,
-        )
+        # Simulation started: 2024-08-12T09:54:56.039
+        # Simulation finised: 2024-08-12T18:23:53.339
+        rumigen(data = dir, testDir = "rumigen/02", nrpt = 100, nrng = 0, nsel = 10)
+    elseif op == 3
+        rumigen(data = dir, testDir = "rumigen/03", nrpt = 20)
+        rumigen(data = dir, testDir = "rumigen/04", nrpt = 20, nrng = 0, nsel = 10)
     else
         @info "1 ≤ op ≤ 2. No operation is performed."
     end

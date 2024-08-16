@@ -162,12 +162,12 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
 
     q0 = q[:, 1]
     H0 = snphet(q0)
-    loci = lmp.dark .&& 0 < frq[:, i] < 2ss.nid[i]
+    loci = lmp.dark .&& 0 .< frq[:, 1] .< 2ss.nid[1]
     factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
     qa = q0[loci] ./ factor
     qb = (q0[loci] .- 0.5) ./ factor
     for i = 1:ng
-        δq = (q[loci, i] .- q0[loci]) / factor
+        δq = (q[loci, i] .- q0[loci]) ./ factor
         covdq[i] = cov(δq, qa)
         covdq2[i] = cov(δq, qb)
         Ht = snphet(q[:, i])
@@ -285,9 +285,10 @@ function resum(dir::AbstractString, trait::Trait)
     psm = deserialize("$dir/summary.ser")
     nrpt, schemes = psm.repeat[end], unique(psm.scheme)
     for i = 1:nrpt
+        tag = lpad(i, ndigits(nrpt), '0')
         for scheme in schemes
-            xy = "$dir/$i-$scheme.xy"
-            ped = deserialize("$dir/$i-$scheme.ped")
+            xy = "$dir/$tag-$scheme.xy"
+            ped = deserialize("$dir/$tag-$scheme.ped")
             ss = xysum(ped, xy, lmp, trait)
             savesum("$dir/re-summary.ser", ss)
         end
