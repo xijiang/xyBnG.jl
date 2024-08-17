@@ -94,13 +94,7 @@ function rumigen(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        sample_xy(fxy, fmp, test, plan.noff, maf, nchp, nref, trait)
-        mv("$test/founder.xy", "$test/snp.xy", force = true)
-        uniq("$test/snp.xy", "$test/founder.xy")
-        lmp = deserialize("$test/founder.lmp")
-
-        # The starting point: random selection
-        randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan; ibd = true)
+        lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
         for scheme in schemes
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             if occursin("blup", bar)
@@ -136,7 +130,11 @@ function run_rumigen(op; dir = "/mnt/a/store/xybng")
         # Simulation finised: 2024-08-12T18:23:53.339
         rumigen(data = dir, testDir = "rumigen/02", nrpt = 100, nrng = 0, nsel = 10)
     elseif op == 3
+        # Simulation started: 2024-08-16T14:23:05.320
+        # Simulation finised: 2024-08-17T01:37:32.146
         rumigen(data = dir, testDir = "rumigen/03", nrpt = 20)
+        # Simulation started: 2024-08-17T01:37:32.208
+        # Simulation finised: 2024-08-17T03:18:29.106
         rumigen(data = dir, testDir = "rumigen/04", nrpt = 20, nrng = 0, nsel = 10)
     else
         @info "1 ≤ op ≤ 2. No operation is performed."

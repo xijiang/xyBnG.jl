@@ -17,6 +17,7 @@ function mini(;
     fixed = ["grt"],
     dF = 0.011,
     nrpt = 1,
+    keep = true,
 )
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
@@ -60,18 +61,19 @@ function mini(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        sample_xy(fxy, fmp, test, plan.noff, maf, nchp, nref, trait)
-        mv("$test/founder.xy", "$test/snp.xy", force = true)
-        uniq("$test/snp.xy", "$test/founder.xy")
-        lmp = deserialize("$test/founder.lmp")
-        # The starting point: random selection
-        randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan)
+        lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
         for scheme in cullSchemes
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
             summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
             Sum.savesum("$test/summary.ser", summary)
         end
+        if !keep
+            for f in readdir("$test")
+                occursin(Regex("^$(tag)"), f) && rm("$test/$f", force=true)
+            end
+        end
+
     end
     open("$test/scenario.par", "a") do io
         println(io, "Ended: ", time())

@@ -58,13 +58,7 @@ function dosblup(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        sample_xy(fxy, fmp, test, plan.noff, maf, nchp, nref, trait)
-        mv("$test/founder.xy", "$test/snp.xy", force = true)
-        uniq("$test/snp.xy", "$test/founder.xy")
-        lmp = deserialize("$test/founder.lmp")
-
-        # The starting point: random selection
-        randbrd(test, "founder", "$tag-rand", lmp, nrng, trait, plan; ibd = true)
+        lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
         for scheme in schemes
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             if occursin("blup", bar)

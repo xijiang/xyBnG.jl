@@ -30,5 +30,6 @@ include("xps/dosblup.jl")
 include("xps/o3cs.jl")
 include("xps/rumigen.jl")
 include("xps/mini.jl")
+include("xps/init.jl")
 
 end # module xps
