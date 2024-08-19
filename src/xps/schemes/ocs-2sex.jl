@@ -17,63 +17,6 @@
 # The selected parents are randomly selected on contibution weights to mate.
 
 """
-    savepar(dic, scenario)
-Save the parameters of the current simulation into file `scenario`.
-"""
-function savepar(scenario, file)
-    n = 0
-    for k in keys(scenario)
-        n = max(n, length(string(k)))
-    end
-    ios, iom = IOBuffer(), IOBuffer()
-
-    for (k, v) in pairs(scenario)
-        if typeof(v) ∈ (Cattle, Trait, Plan, Species)
-            println(iom)
-            println(iom, "[$k]")
-            println(iom, v)
-        else
-            println(ios, lpad(k, n), ": ", v)
-        end
-    end
-    open(file, "w") do io
-        println(io, lpad("Started", n), ": ", time())
-        # use Dates.unix2datetime(time()) to convert above time to DateTime
-        print(io, String(take!(ios)))
-        print(io, String(take!(iom)))
-    end
-end
-
-"""
-    randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
-Random selection on `foo`.xy, `foo`.ped in directory `test` for `ngn`
-generations. This is to select a single trait `trait` using a selection plan
-`plan`. SNP linkage information are in DataFrame `lmp`. The results are saved in
-`bar`.xy, `bar`.ped in directory `test`. If `ibd` is `true`, the IBD
-relationship matrix is calculated and saved in `bar`.irm.
-"""
-function randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
-    @info "  - Random selection for $ngn generations"
-    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force = true)
-    for ign = 1:ngn
-        print(" $ign")
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
-        phenotype!(ids, ped, trait)
-        Predict!(ids, ped, trait)
-        ng = Select(ids, plan, ped, trait)
-        reproduce!(ng, ped, xy, lmp, trait)
-    end
-    println()
-    serialize("$test/$bar.ped", ped)
-    if ibd
-        @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:nrow(ped))
-        write("$test/$bar.irm", G)
-    end
-end
-
-"""
     aaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `A` for both EBV and constraint on `foo`.xy
 and `foo`.ped in directory `test` for `ngn` generations. SNP linkage information
@@ -122,7 +65,7 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
 function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
-    @info "  - Directional selection IIBLUP for $ngn generations"
+    @info "  - Directional selection IIOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
     G = zeros(nrow(ped), nrow(ped))
@@ -236,7 +179,7 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
 function ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
-    @info "  - Directional selection GGBLUP for $ngn generations"
+    @info "  - Directional selection GGOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
     for ign = 1:ngn
@@ -271,7 +214,7 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`igocs`](@ref).
 """
 function agocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
-    @info "  - Directional selection AGBLUP for $ngn generations"
+    @info "  - Directional selection AGOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
     for ign = 1:ngn
@@ -307,7 +250,7 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`agocs`](@ref).
 """
 function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
-    @info "  - Directional selection IGBLUP for $ngn generations"
+    @info "  - Directional selection IGOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
     for ign = 1:ngn
@@ -321,96 +264,6 @@ function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         g22 = irm(xy, lmp.chip, mid+1-length(ids):mid)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
-    end
-    println()
-    serialize("$test/$bar.ped", ped)
-end
-
-"""
-    gblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
-Directional selection with `G` relationship matrix for EBV on `foo`.xy and
-`foo`.ped in directory `test` for `ngn` generations. SNP linkage information are
-in DataFrame `lmp`. The results are saved in `bar`.xy, `bar`.ped in directory
-`test`. The selection is on a single trait `trait` with fixed effects `fixed`,
-which is a column name vector in pedigree DataFrame. The selection is based on
-the selection plan `plan`.
-
-See also [`ablup`](@ref), [`iblup`](@ref).
-"""
-function gblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
-    @info "  - Directional selection GBLUP for $ngn generations"
-    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force = true)
-    for ign = 1:ngn
-        print(" $ign")
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
-        phenotype!(ids, ped, trait)
-        G = grm(xy, lmp.chip, lmp.frq)
-        giv = inv(G)
-        Predict!(ids, ped, fixed, giv, trait)
-        ng = Select(ids, plan, ped, trait)
-        reproduce!(ng, ped, xy, lmp, trait)
-    end
-    println()
-    serialize("$test/$bar.ped", ped)
-end
-
-"""
-    ablup(test, foo, bar, lmp, ngn, trait, fixed, plan)
-Directional selection with `A` relationship matrix for EBV on `foo`.xy and
-`foo`.ped in directory `test` for `ngn` generations. SNP linkage information are
-in DataFrame `lmp`. The results are saved in `bar`.xy, `bar`.ped in directory
-`test`. The selection is on a single trait `trait` with fixed effects `fixed`,
-which is a column name vector in pedigree DataFrame. The selection is based on
-the selection plan `plan`.
-
-See also [`gblup`](@ref), [`iblup`](@ref).
-"""
-function ablup(test, foo, bar, lmp, ngn, trait, fixed, plan)
-    @info "  - Directional selection ABLUP for $ngn generations"
-    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force = true)
-    for ign = 1:ngn
-        print(" $ign")
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
-        phenotype!(ids, ped, trait)
-        G = nrm(ped)
-        giv = inv(G)
-        Predict!(ids, ped, fixed, giv, trait)
-        ng = Select(ids, plan, ped, trait)
-        reproduce!(ng, ped, xy, lmp, trait)
-    end
-    println()
-    serialize("$test/$bar.ped", ped)
-end
-
-"""
-    iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
-Directional selection with `IBD` relationship matrix for EBV on `foo`.xy and
-`foo`.ped in directory `test` for `ngn` generations. SNP linkage information are
-in DataFrame `lmp`. The results are saved in `bar`.xy, `bar`.ped in directory
-`test`. The selection is on a single trait `trait` with fixed effects `fixed`,
-which is a column name vector in pedigree DataFrame. The selection is based on
-the selection plan `plan`.
-
-See also [`gblup`](@ref), [`ablup`](@ref).
-"""
-function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
-    @info "  - Directional selection IBLUP for $ngn generations"
-    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
-    cp("$test/$foo.xy", xy, force = true)
-    G = zeros(nrow(ped), nrow(ped))
-    read!("$test/$foo.irm", G)
-    for ign = 1:ngn
-        print(" $ign")
-        ids = view(ped, ped.grt .== ped.grt[end], :id)
-        phenotype!(ids, ped, trait)
-        giv = inv(G)
-        Predict!(ids, ped, fixed, giv, trait)
-        mid = nrow(ped)
-        ng = Select(ids, plan, ped, trait)
-        reproduce!(ng, ped, xy, lmp, trait)
-        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
     end
     println()
     serialize("$test/$bar.ped", ped)

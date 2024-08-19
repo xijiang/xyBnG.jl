@@ -31,9 +31,9 @@ end
 
 """
     FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Float64})
-This function returns the allele frequencies of `mat`, population selection
-`Ceiling` and `Floor`, and genic variance by generation as indicated by `grt`
-and QTL additive effects `eff`.
+This function returns the allele frequencies of haplotype matrix `mat`,
+population selection `Ceiling` and `Floor`, and genic variance by generation as
+indicated by `grt` and QTL additive effects `eff`.
 """
 function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Float64})
     nlc = size(mat, 1)
@@ -41,7 +41,7 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
     ng = length(ug)
     frq = zeros(Int16, nlc, ng)
     flr, clg, vgn = zeros(ng), zeros(ng), zeros(ng)
-    a2 = 2eff .* eff
+    a2 = 2eff .* eff  # => 2a²
     pp, nn = eff .> 0, eff .< 0
     aa, bb = sum(eff[nn]), sum(eff[pp])
     for i = 1:ng
@@ -50,13 +50,13 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
         nhp = sum(grt .== ug[i])
         p = frq[:, i] / nhp
         q = 1 .- p
-        vgn[i] = sum(p .* q .* a2) # genic variance
+        vgn[i] = sum(p .* q .* a2) # genic variance = ∑2pqa²
         t = nn .&& frq[:, i] .== nhp
         flr[i] = aa - sum(eff[t])
         t = pp .&& frq[:, i] .== 0
         clg[i] = bb - sum(eff[t])
     end
-    frq, flr, clg, vgn
+    frq, 2flr, 2clg, vgn
 end
 
 """
@@ -68,10 +68,14 @@ function snphet(q::AbstractVector{Float64})
     1 - mean(H) # heterozygosity
 end
 
+function dsnphet(q::AbstractVector{Float64})
+    H = q .* q + (1 .- q) .* (1 .- q) # homozygosity
+    1 .- H # heterozygosity
+end
+
 """
-    xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
-Summarize the simulation results in `xy` and `ped` files. `ssg` is the selection
-starting generation.
+    xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
+Summarize the simulation results in `xy` and `ped` files.
 
 It is supposed that filename `xy` is of the pattern `repeat-scheme.xy`. Repeat
 number and scheme are to be stored in the result DataFrame.
@@ -97,9 +101,12 @@ number and scheme are to be stored in the result DataFrame.
 - `genicv`: genic variance
 - `floor`: floor of the population, i.e., the lowest mean TBV
 - `ceiling`: ceiling of the population
-
+- `covdq`: covariance between q₀ and qₜ
+- `covdq2`: covariance between q₀ corrected and qₜ
+- `fhet`: inbreeding by homozygosity
+- `fdrift`: inbreeding by drift
 """
-function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
+function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     haps = XY.mapit(xy)
     ped.iF = tibd(view(haps, lmp.chip, :))
     frq, flr, clg, vgn =
@@ -126,10 +133,8 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
     xqtl = zeros(Int, ng)  # number of QTL fixed
     xchip = zeros(Int, ng) # number of chip loci fixed
     xref = zeros(Int, ng)  # number of reference loci fixed
-    xfq = zeros(Int, ng)    # number of favorable QTL fixed
-    xuq = zeros(Int, ng)    # number of unfavorable QTL fixed
-    fhet = zeros(ng)        # Inbreeding by heterozygosity
-    fdrift = zeros(ng)      # Inbreeding by drift
+    xfq = zeros(Int, ng)   # number of favorable QTL fixed
+    xuq = zeros(Int, ng)   # number of unfavorable QTL fixed
     q = zeros(size(frq))
     for i = 1:ng
         chip = view(frq, lmp.chip, i)
@@ -155,56 +160,58 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait,
     end
     insertcols!(ss, :xqtl => xqtl, :xchip => xchip, :xref => xref, :xfq => xfq, :xuq => xuq)
     insertcols!(ss, :genicv => vgn, :floor => flr, :ceiling => clg)
-    covdq = zeros(ng)       # covariance between q₀ and qᵢ
-    covdq2 = zeros(ng)      # covariance between q₀ corrected and qᵢ
+    covdq = zeros(ng)      # covariance between q₀ and qᵢ
+    covdq2 = zeros(ng)     # covariance between q₀ corrected and qᵢ
+    fhet = zeros(ng)       # Inbreeding by heterozygosity
+    fhet2 = zeros(ng)      # Inbreeding by heterozygosity
+    fdrift = zeros(ng)     # Inbreeding by drift
+    fdrift2 = zeros(ng)    # Inbreeding by drift
 
-    q0 = q[:, ssg]
-    H0 = snphet(q0)
-    for i = ssg+1:ng
-        loci = frq[:, i] .≠ 2ss.nid[i] .&& frq[:, i] .≠ 0
-        factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
+    q0 = q[:, 1]
+    H0, H0d = snphet(q0), dsnphet(q0)
+    loci = lmp.dark .&& 0 .< frq[:, 1] .< 2ss.nid[1]
+    factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
+    qa = q0[loci] ./ factor
+    qb = (q0[loci] .- 0.5) ./ factor
+    for i = 1:ng
         δq = (q[loci, i] .- q0[loci]) ./ factor
-        q₀ = q0[loci] ./ factor
-        covdq[i] = cov(δq, q₀)
-        q₀ = (q0[loci] .- 0.5) ./ factor
-        covdq2[i] = cov(δq, q₀)
-        Ht = snphet(q[:, i])
+        covdq[i] = cov(δq, qa)
+        covdq2[i] = cov(δq, qb)
+        Ht, Htd = snphet(q[:, i]), dsnphet(q[:, i])
         fhet[i] = (H0 - Ht) / H0
+        fhet2[i] = mean((H0d - Htd) ./ H0d)
         fdrift[i] = 2var(q[:, i] - q0) / H0
+        fdrift2[i] = mean(2(q[:, i] - q0) .^ 2 ./ H0d)
     end
-    insertcols!(ss, :covdq => covdq, :covdq2 => covdq2, :fhet => fhet, :fdrift => fdrift)
+    insertcols!(
+        ss,
+        :covdq => covdq,
+        :covdq2 => covdq2,
+        :fhet => fhet,
+        :fhet2 => fhet2,
+        :fdrift => fdrift,
+        :fdrift2 => fdrift2,
+    )
     ss
 end
 
 """
-    xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait, ssg::Int)
+    xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait)
 Summarize the simulation results in file `ped`, `xy` and `lmp` files.
 """
-function xysum(
-    ped::AbstractString,
-    xy::AbstractString,
-    lmp::AbstractString,
-    trait::Trait,
-    ssg::Int,
-)
+function xysum(ped::AbstractString, xy::AbstractString, lmp::AbstractString, trait::Trait)
     pd = deserialize(ped)
     lp = deserialize(lmp)
-    xysum(pd, xy, lp, trait, ssg)
+    xysum(pd, xy, lp, trait)
 end
 
 """
     xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::Trait, ssg::Int)
 Summarize the simulation results in `xy` and `ped` files. `lmp` is in memory already.
 """
-function xysum(
-    ped::AbstractString,
-    xy::AbstractString,
-    lmp::DataFrame,
-    trait::Trait,
-    ssg::Int,
-)
+function xysum(ped::AbstractString, xy::AbstractString, lmp::DataFrame, trait::Trait)
     pd = deserialize(ped)
-    xysum(pd, xy, lmp, trait, ssg)
+    xysum(pd, xy, lmp, trait)
 end
 
 """
@@ -225,7 +232,7 @@ end
 """
     corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
 Calculate the correlation between the off-diagonal elements of the `A`, `G`, and
-`IBD` matrices. G and IBD are calculated with the chip loci incidated in the
+`IBD` matrices. G and IBD are calculated with the chip loci indicated in the
 `DataFrame` stored in the `fmp` file.
 """
 function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
@@ -282,6 +289,27 @@ function corMat(fxy::AbstractString, fpd::AbstractString, fmp::AbstractString)
     (xz - x * z / n) / sqrt((x2 - x^2 / n) * (z2 - z^2 / n)),
     (yz - y * z / n) / sqrt((y2 - y^2 / n) * (z2 - z^2 / n))
     return [c1, c2, c3, c4, c5, c6]
+end
+
+"""
+    resum(dir::AbstractString)
+This is an amendment to the `xysum` function in directory `dir`, where the data
+are kept. This is needed when the formulae of some indices are changed.
+"""
+function resum(dir::AbstractString, trait::Trait)
+    isfile("$dir/re-summary.ser") && rm("$dir/re-summary.ser", force = true)
+    lmp = deserialize("$dir/founder.lmp")
+    psm = deserialize("$dir/summary.ser")
+    nrpt, schemes = psm.repeat[end], unique(psm.scheme)
+    for i = 1:nrpt
+        tag = lpad(i, ndigits(nrpt), '0')
+        for scheme in schemes
+            xy = "$dir/$tag-$scheme.xy"
+            ped = deserialize("$dir/$tag-$scheme.ped")
+            ss = xysum(ped, xy, lmp, trait)
+            savesum("$dir/re-summary.ser", ss)
+        end
+    end
 end
 
 end # module Sum

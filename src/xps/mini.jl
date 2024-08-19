@@ -1,20 +1,24 @@
-function dosblup(;
+"""
+    mini()
+This function is to run a very small example of the package `xyBnG`. It is
+for my laptop to run in a reasonable time.
+"""
+function mini(;
     data = "rst",
     baseDir = "tskit",
-    testDir = "cattle",
+    testDir = "mini",
     species = Cattle(5_000),
-    trait = Trait("milk", 0.25, 10000; sex = 0),
-    nchp = 50_000,
-    nref = 10_000,
+    trait = Trait("milk", 0.25, 1_000; sex = 0),
+    nchp = 3_000,
+    nref = 1_000,
     nrng = 5,
     nsel = 20,
-    plan = Plan(25, 50, 200),
+    plan = Plan(5, 10, 40),
     fixed = ["grt"],
     dF = 0.011,
     nrpt = 1,
     keep = true,
 )
-
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
     isdir("$test") || mkpath("$test")
@@ -46,9 +50,8 @@ function dosblup(;
     end
     sname = desc[1]
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
-    #schemes = (aaocs, iiocs, iidos, ggocs, agocs, igocs, gblup, ablup, iblup)
-    schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
-
+    #schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
+    culls = (gblup, ablup)
     F0 = 0.027
 
     # Simulations
@@ -59,21 +62,18 @@ function dosblup(;
         @info "  - Prepare a founder population"
 
         lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
-        for scheme in schemes
+        for scheme in culls
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
-            if occursin("blup", bar)
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
-            else
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan, dF, F0)
-            end
+            scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
             summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
             Sum.savesum("$test/summary.ser", summary)
         end
         if !keep
             for f in readdir("$test")
-                occursin(Regex("^$(tag)"), f) && rm("$test/$f", force = true)
+                occursin(Regex("^$(tag)"), f) && rm("$test/$f", force=true)
             end
         end
+
     end
     open("$test/scenario.par", "a") do io
         println(io, "Ended: ", time())
