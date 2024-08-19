@@ -135,8 +135,8 @@ function run_rumigen(op; dir = "/mnt/a/store/xybng")
         rumigen(data = dir, testDir = "rumigen/03", nrpt = 20)
         # Simulation started: 2024-08-17T01:37:32.208
         # Simulation finised: 2024-08-17T03:18:29.106
-        rumigen(data = dir, testDir = "rumigen/04", nrpt = 20, nrng = 0, nsel = 10)
+        rumigen(data = dir, testDir = "rumigen/04", nrpt = 70, nrng = 0, nsel = 10)
     else
-        @info "1 ≤ op ≤ 2. No operation is performed."
+        @info "Be sure that 1 ≤ op ≤ 3. No operation is performed."
     end
 end

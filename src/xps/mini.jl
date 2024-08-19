@@ -51,7 +51,7 @@ function mini(;
     sname = desc[1]
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
     #schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
-    cullSchemes = (gblup, ablup)
+    culls = (gblup, ablup)
     F0 = 0.027
 
     # Simulations
@@ -62,7 +62,7 @@ function mini(;
         @info "  - Prepare a founder population"
 
         lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
-        for scheme in cullSchemes
+        for scheme in culls
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
             summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)

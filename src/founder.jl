@@ -301,8 +301,8 @@ end
 """
     sample_xy(fxy::AbstractString, fmp::AbstractString, tdir::AbstractString, nid::Int, maf::Float64, nchp::Int, nref::Int, trts::Trait...)
 Sample a founder from a SNP file `fxy` and a linkage map `fmp` into `tdir`. The
-founder has `nid` ID, `maf` minor allele frequency, `nchp` chip SNP, `nref`
-reference loci, and `trts` traits.
+founder has `nid` ID, `maf` (exclusive) minor allele frequency, `nchp` chip SNP,
+`nref` reference loci, and `trts` traits.
 
 Note: ID are sampled first. It is better to read the genotype sequentially on a
 spinning disk. Hence the SNP file needs to be loci majored.
@@ -329,6 +329,7 @@ function sample_xy(
     nid ≤ aid || error("Number of ID to sampled ($nid) is larger than available ($aid)")
     lmp = deserialize(fmp)
     nrow(lmp) == nlc || error("Linkage map and SNP file do not match")
+    0.0 ≤ maf ≤ 0.5 || error("Minor allele frequency out of range")
 
     @info "  - Sampling ID"
     hps = begin
@@ -336,29 +337,55 @@ function sample_xy(
         sort([2tmp .- 1; 2tmp])
     end
     sgt = Int8.(gt[:, hps])
-    frq = vec(mean(sgt, dims = 2)) # mean(gt, dims = 2) is a matrix !
+    lmp.frq = vec(mean(sgt, dims = 2)) # mean(gt, dims = 2) is a matrix !
 
     @info "  - Sampling SNP"
-    vld = (frq .> maf) .&& (frq .< 1.0 - maf)
+    vld = (lmp.frq .> maf) .&& (lmp.frq .< 1.0 - maf)
     msnp ≤ sum(vld) || error("Number of SNP required is larger than available")
     pool, out = (1:nlc)[vld], Set{Int}()
     chip = add_bool!(lmp, "chip", pool, nchp)
     out = out ∪ chip
     dark = add_bool!(lmp, "dark", pool, nref)
     out = out ∪ dark
+    for t in trts
+        qtl = add_bool!(lmp, t.name, pool, t.nQTL)
+        out = out ∪ qtl
+    end
+    out = sort(collect(out))
+    @info "  - Saving the sample to $tdir, with allele name randomly named"
+    lmp = copy(view(lmp, out, :))
+    ogt = view(sgt, out, :)
+    frq, ref, alt = lmp.frq, lmp.ref, lmp.alt
+    open("$tdir/founder.xy", "w") do io
+        hdr = XY.header()
+        write(io, Ref(hdr), [length(out), 2nid])
+        for i ∈ 1:size(ogt, 1)
+            if rand(Bool)
+                write(io, ogt[i, :])
+            else
+                write(io, 1 .- ogt[i, :])
+                frq[i] = 1.0 .- frq[i]
+                ref[i], alt[i] = alt[i], ref[i]
+            end
+        end
+    end
+    print("    Genotypes")
     ped = DataFrame(
         id = Int32.(1:nid),
         sire = Int32(0),
         dam = Int32(0),
-        sex = rand(Int8.(0:1), nid),
+        sex = shuffle([zeros(Int8, nid ÷ 2); ones(Int8, nid - nid ÷ 2)]),
         grt = Int16(0),
     )
+    serialize("$tdir/founder.ped", ped)
+    print(", pedigree")
+
     for t in trts
-        qtl = add_bool!(lmp, t.name, pool, t.nQTL)
-        out = out ∪ qtl
-        Q = sgt[qtl, 1:2:end] + sgt[qtl, 2:2:end]
+        qtl = lmp[!, t.name]
+        Q = ogt[qtl, 1:2:end] + ogt[qtl, 2:2:end]
         D = Q .== 1
-        a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
+        a = rand(t.da, t.nQTL)
+        d = rand(t.dd, t.nQTL)
         norm_v(Q, a)
         norm_v(D, d, σ = sqrt(t.vd))
         lmp[!, "$(t.name)_a"] .= 0.0
@@ -369,15 +396,8 @@ function sample_xy(
         ped[!, "ebv_$(t.name)"] .= -1e8
         ped[!, "gt_$(t.name)"] = ped[!, "tbv_$(t.name)"] + D'd
     end
-    out = sort(collect(out))
-    @info "  - Saving the sample to $tdir"
-    serialize("$tdir/founder.lmp", lmp[out, :])
-    serialize("$tdir/founder.ped", ped)
-    hdr = XY.header()
-    open("$tdir/founder.xy", "w") do io
-        write(io, Ref(hdr), [length(out), 2nid])
-        write(io, sgt[out, :])
-    end
+    serialize("$tdir/founder.lmp", lmp)
+    println(", and linkage map")
 end
 
 end # module Founder

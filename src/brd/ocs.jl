@@ -77,10 +77,13 @@ function konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
 end
 
 """
+    OC_fixsex2(EBV, A, K, c2)
+- `c2` are fixed contribution of females (Σc₂ = 1).
+- A is relationship matrix of all animals
+    - A11 = relationship of candidates
+    - A22 = relationship of selected females
 """
 function OC_fixsex2(EBV, A, K, c2)
-    # c2=fixed contribution of females (sums to 1)
-    #note: A is relationship matrix of all animals (A11=relationship of candidates; A22=relationship of selected females)
     c2 = 0.5 * c2 / sum(c2)
 
     n = size(EBV, 1)

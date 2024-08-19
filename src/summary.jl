@@ -172,7 +172,9 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
         covdq2[i] = cov(δq, qb)
         Ht = snphet(q[:, i])
         fhet[i] = (H0 - Ht) / H0
-        fdrift[i] = 2var(q[:, i] - q0) / H0
+        #ToDo: compare below two.
+        #fdrift[i] = 2var(q[:, i] - q0) / H0
+        fdrift[i] = mean(2(q[:, i] - q0) .^ 2 ./ H0a)
     end
     insertcols!(ss, :covdq => covdq, :covdq2 => covdq2, :fhet => fhet, :fdrift => fdrift)
     ss
