@@ -377,8 +377,6 @@ function sample_xy(
         sex = shuffle([zeros(Int8, nid ÷ 2); ones(Int8, nid - nid ÷ 2)]),
         grt = Int16(0),
     )
-    serialize("$tdir/founder.ped", ped)
-    print(", pedigree")
 
     for t in trts
         qtl = lmp[!, t.name]
@@ -396,8 +394,9 @@ function sample_xy(
         ped[!, "ebv_$(t.name)"] .= -1e8
         ped[!, "gt_$(t.name)"] = ped[!, "tbv_$(t.name)"] + D'd
     end
+    serialize("$tdir/founder.ped", ped)
     serialize("$tdir/founder.lmp", lmp)
-    println(", and linkage map")
+    println(", pedigree, and linkage map")
 end
 
 end # module Founder

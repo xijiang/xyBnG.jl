@@ -68,6 +68,11 @@ function snphet(q::AbstractVector{Float64})
     1 - mean(H) # heterozygosity
 end
 
+function dsnphet(q::AbstractVector{Float64})
+    H = q .* q + (1 .- q) .* (1 .- q) # homozygosity
+    1 .- H # heterozygosity
+end
+
 """
     xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
 Summarize the simulation results in `xy` and `ped` files.
@@ -128,10 +133,8 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     xqtl = zeros(Int, ng)  # number of QTL fixed
     xchip = zeros(Int, ng) # number of chip loci fixed
     xref = zeros(Int, ng)  # number of reference loci fixed
-    xfq = zeros(Int, ng)    # number of favorable QTL fixed
-    xuq = zeros(Int, ng)    # number of unfavorable QTL fixed
-    fhet = zeros(ng)        # Inbreeding by heterozygosity
-    fdrift = zeros(ng)      # Inbreeding by drift
+    xfq = zeros(Int, ng)   # number of favorable QTL fixed
+    xuq = zeros(Int, ng)   # number of unfavorable QTL fixed
     q = zeros(size(frq))
     for i = 1:ng
         chip = view(frq, lmp.chip, i)
@@ -157,11 +160,15 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     end
     insertcols!(ss, :xqtl => xqtl, :xchip => xchip, :xref => xref, :xfq => xfq, :xuq => xuq)
     insertcols!(ss, :genicv => vgn, :floor => flr, :ceiling => clg)
-    covdq = zeros(ng)       # covariance between q₀ and qᵢ
-    covdq2 = zeros(ng)      # covariance between q₀ corrected and qᵢ
+    covdq = zeros(ng)      # covariance between q₀ and qᵢ
+    covdq2 = zeros(ng)     # covariance between q₀ corrected and qᵢ
+    fhet = zeros(ng)       # Inbreeding by heterozygosity
+    fhet2 = zeros(ng)      # Inbreeding by heterozygosity
+    fdrift = zeros(ng)     # Inbreeding by drift
+    fdrift2 = zeros(ng)    # Inbreeding by drift
 
     q0 = q[:, 1]
-    H0 = snphet(q0)
+    H0, H0d = snphet(q0), dsnphet(q0)
     loci = lmp.dark .&& 0 .< frq[:, 1] .< 2ss.nid[1]
     factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
     qa = q0[loci] ./ factor
@@ -170,13 +177,21 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
         δq = (q[loci, i] .- q0[loci]) ./ factor
         covdq[i] = cov(δq, qa)
         covdq2[i] = cov(δq, qb)
-        Ht = snphet(q[:, i])
+        Ht, Htd = snphet(q[:, i]), dsnphet(q[:, i])
         fhet[i] = (H0 - Ht) / H0
-        #ToDo: compare below two.
-        #fdrift[i] = 2var(q[:, i] - q0) / H0
-        fdrift[i] = mean(2(q[:, i] - q0) .^ 2 ./ H0a)
+        fhet2[i] = mean((H0d - Htd) ./ H0d)
+        fdrift[i] = 2var(q[:, i] - q0) / H0
+        fdrift2[i] = mean(2(q[:, i] - q0) .^ 2 ./ H0d)
     end
-    insertcols!(ss, :covdq => covdq, :covdq2 => covdq2, :fhet => fhet, :fdrift => fdrift)
+    insertcols!(
+        ss,
+        :covdq => covdq,
+        :covdq2 => covdq2,
+        :fhet => fhet,
+        :fhet2 => fhet2,
+        :fdrift => fdrift,
+        :fdrift2 => fdrift2,
+    )
     ss
 end
 
