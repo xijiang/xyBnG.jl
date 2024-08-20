@@ -13,6 +13,8 @@
         cibd::Bool,
     )
 Sample a founder population and run a breeding scheme with random selection.
+This function returns the linkage map `lmp`, and inbreeding `F0` of the initial
+population.
 """
 function initPop(
     fxy::AbstractString,
@@ -25,7 +27,7 @@ function initPop(
     nrng::Int,
     trait::Trait,
     tag::AbstractString,
-    cibd::Bool,
+    cibd::Bool, # if to calculate IBD
 )
     sample_xy(fxy, fmp, test, plan.noff, maf, nchp, nref, trait)
     mv("$test/founder.xy", "$test/$tag-snp.xy", force = true)
@@ -33,6 +35,6 @@ function initPop(
     mv("$test/founder.ped", "$test/$tag-founder.ped", force = true)
     uniq("$test/$tag-snp.xy", "$test/$tag-founder.xy")
     lmp = deserialize("$test/$tag-founder.lmp")
-    randbrd(test, "$tag-founder", "$tag-rand", lmp, nrng, trait, plan; ibd = cibd)
-    lmp
+    F0 = randbrd(test, "$tag-founder", "$tag-rand", lmp, nrng, trait, plan; ibd = cibd)
+    lmp, F0
 end

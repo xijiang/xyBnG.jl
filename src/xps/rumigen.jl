@@ -11,7 +11,6 @@
         nsel = 20,
         plan = Plan(25, 50, 200),
         fixed = ["grt"],
-        F0 = .0, # should be 0.027 with 5-generation random selection
         dF = 0.011,
         nrpt = 1,
         keep = true,
@@ -46,7 +45,6 @@ function rumigen(;
     nsel = 20,
     plan = Plan(25, 50, 200),
     fixed = ["grt"],
-    F0 = .0, # should be 0.027 with 5-generation random selection of 25m x 50f
     dF = 0.011,
     nrpt = 1,
     keep = true,
@@ -68,7 +66,6 @@ function rumigen(;
         Nsel = nsel,
         Plan = plan,
         Fixed = fixed,
-        F0 = F0,
         ΔF = dF,
         Nrpt = nrpt,
         Schemes = schemes,
@@ -95,7 +92,7 @@ function rumigen(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
+        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
         for scheme in schemes
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             if occursin("blup", bar)
