@@ -108,6 +108,45 @@ mutable struct header
     end
 end
 
+function Base.show(io::IO, h::header)
+    if h.r == 1
+        print(io, "A BitArray matrix")
+    else
+        print(io, "A normal matrix")
+    end
+    if h.u == 0
+        println(io, " coding SNP alleles.")
+    elseif h.u == 1
+        println(io, " coding IBD alleles.")
+    elseif h.u == 2
+        println(io, " coding genotypes.")
+    else
+        println(io, " with unknown coding.")
+    end
+    println(io, "        -------")
+    m = join(Char.((h.x, h.y, h.v)))
+    println(io, "The magic chars: '$m'.")
+    if h.flus == Int8('F')
+        println(io, "         Matrix: full matrix.")
+    elseif h.flus == Int8('L')
+        println(io, "         Matrix: lower triangle of a square matrix.")
+    elseif h.flus == Int8('U')
+        println(io, "         Matrix: upper triangle of a square matrix.")
+    elseif h.flus == Int8('S')
+        println(io, "         Matrix: symmetric matrix.")
+    else
+        println(io, "         Matrix: unknown.")
+    end
+    if h.major == 0
+        println(io, "          Major: loci majored.")
+    elseif h.major == 1
+        println(io, "          Major: ID majored.")
+    else
+        println(io, "          Major: $(h.major) -- unknown.")
+    end
+    println(io, "   Element type: $(_type(h.type))")
+end
+
 """
     isEqual(h1::T, h2::T) where T <: header
 

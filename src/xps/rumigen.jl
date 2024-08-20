@@ -11,6 +11,7 @@
         nsel = 20,
         plan = Plan(25, 50, 200),
         fixed = ["grt"],
+        F0 = .0, # should be 0.027 with 5-generation random selection
         dF = 0.011,
         nrpt = 1,
         keep = true,
@@ -45,7 +46,7 @@ function rumigen(;
     nsel = 20,
     plan = Plan(25, 50, 200),
     fixed = ["grt"],
-    F0 = .0, # should be 0.027 with 5-generation random selection
+    F0 = .0, # should be 0.027 with 5-generation random selection of 25m x 50f
     dF = 0.011,
     nrpt = 1,
     keep = true,
@@ -67,6 +68,7 @@ function rumigen(;
         Nsel = nsel,
         Plan = plan,
         Fixed = fixed,
+        F0 = F0,
         ΔF = dF,
         Nrpt = nrpt,
         Schemes = schemes,
