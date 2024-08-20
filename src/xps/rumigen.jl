@@ -38,13 +38,14 @@ function rumigen(;
     baseDir = "tskit",
     testDir = "cattle",
     species = Cattle(5_000),
-    trait = Trait("milk", 0.25, 10000),
+    trait = Trait("growth", 0.25, 10000),
     nchp = 50_000,
     nref = 10_000,
     nrng = 5,
     nsel = 20,
     plan = Plan(25, 50, 200),
     fixed = ["grt"],
+    F0 = .0, # should be 0.027 with 5-generation random selection
     dF = 0.011,
     nrpt = 1,
     keep = true,
@@ -84,8 +85,6 @@ function rumigen(;
     sname = desc[1]
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
     pln2 = Plan(50, 50, 200)
-
-    F0 = 0.027
 
     # Simulations
     for irpt = 1:nrpt
