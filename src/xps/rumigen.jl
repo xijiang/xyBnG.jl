@@ -53,7 +53,8 @@ function rumigen(;
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
     isdir("$test") || mkpath("$test")
-    schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
+    #schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
+    schemes = (ggocs)
     scenario = (
         Data = data,
         BaseDir = baseDir,
@@ -111,30 +112,5 @@ function rumigen(;
     end
     open("$test/scenario.par", "a") do io
         println(io, "Ended: ", time())
-    end
-end
-
-"""
-    run_rumigen(op)
-Run the `rumigen` function to repeat previous results.
-"""
-function run_rumigen(op; dir = "/mnt/a/store/xybng")
-    if op == 1
-        # Simulation started: 2024-08-09T10:55:59.562
-        # Simulation finised: 2024-08-11T20:19:59.645
-        rumigen(data = dir, testDir = "rumigen/01", nrpt = 100)
-    elseif op == 2
-        # Simulation started: 2024-08-12T09:54:56.039
-        # Simulation finised: 2024-08-12T18:23:53.339
-        rumigen(data = dir, testDir = "rumigen/02", nrpt = 100, nrng = 0, nsel = 10)
-    elseif op == 3
-        # Simulation started: 2024-08-16T14:23:05.320
-        # Simulation finised: 2024-08-17T01:37:32.146
-        rumigen(data = dir, testDir = "rumigen/03", nrpt = 20)
-        # Simulation started: 2024-08-17T01:37:32.208
-        # Simulation finised: 2024-08-17T03:18:29.106
-        rumigen(data = dir, testDir = "rumigen/04", nrpt = 70, nrng = 0, nsel = 10)
-    else
-        @info "Be sure that 1 ≤ op ≤ 3. No operation is performed."
     end
 end
