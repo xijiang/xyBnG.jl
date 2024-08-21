@@ -35,14 +35,14 @@ function savepar(scenario, file)
 end
 
 """
-    randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
+    randbrd(test, foo, bar, lmp, ngn, trait, plan)
 Random selection on `foo`.xy, `foo`.ped in directory `test` for `ngn`
 generations. This is to select a single trait `trait` using a selection plan
 `plan`. SNP linkage information are in DataFrame `lmp`. The results are saved in
 `bar`.xy, `bar`.ped in directory `test`. If `ibd` is `true`, the IBD
 relationship matrix is calculated and saved in `bar`.irm.
 """
-function randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
+function randbrd(test, foo, bar, lmp, ngn, trait, plan)
     @info "  - Random selection for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -56,11 +56,6 @@ function randbrd(test, foo, bar, lmp, ngn, trait, plan; ibd = false)
     end
     println()
     serialize("$test/$bar.ped", ped)
-    if ibd
-        @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:nrow(ped))
-        write("$test/$bar.irm", G)
-    end
     δF = 1 / 8plan.npa + 1 / 8plan.nma  # Falconer 1996, pp. 67
     n = ngn > 2 ? ngn - 1 : 0
     1 - (1 - δF) ^ n # F0: expected inbreeding after random selection
@@ -139,8 +134,15 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     @info "  - Directional selection IBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = zeros(nrow(ped), nrow(ped))
-    read!("$test/$foo.irm", G)
+    G = nothing
+    if isfile("$test/$foo.irm")
+        G = zeros(nrow(ped), nrow(ped))
+        read!("$test/$foo.irm", G)
+    else
+        @info "  - Calculating IBD relationship matrix"
+        G = irm(xy, lmp.chip, 1:nrow(ped))
+        write("$test/$foo.irm", G)
+    end
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)

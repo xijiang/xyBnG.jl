@@ -42,19 +42,19 @@ function rumigen(;
     nchp = 50_000,
     nref = 10_000,
     nrng = 5,
-    nsel = 20,
+    nsel = 10,
     plan = Plan(25, 50, 200),
     fixed = ["grt"],
     dF = 0.011,
     nrpt = 1,
     keep = true,
 )
-
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
-    isdir("$test") || mkpath("$test")
-    #schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
-    schemes = (ggocs)
+    isdir("$test") && rm("$test", force = true, recursive = true)
+    mkpath("$test")
+    CULLS = (gblup, ablup, iblup)
+    OCSS = (aaocs, iiocs, ggocs, agocs, igocs)
     scenario = (
         Data = data,
         BaseDir = baseDir,
@@ -69,7 +69,7 @@ function rumigen(;
         Fixed = fixed,
         ΔF = dF,
         Nrpt = nrpt,
-        Schemes = schemes,
+        Schemes = union(CULLS, OCSS),
     )
     savepar(scenario, "$test/scenario.par")
     isfile("$test/summary.ser") && rm("$test/summary.ser", force = true)
@@ -93,14 +93,16 @@ function rumigen(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
-        for scheme in schemes
+        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag)
+        for scheme in CULLS
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
-            if occursin("blup", bar)
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
-            else
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, pln2, dF, F0)
-            end
+            scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
+            summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
+            Sum.savesum("$test/summary.ser", summary)
+        end
+        for scheme in OCSS
+            foo, bar = "$tag-rand", tag * '-' * string(scheme)
+            scheme(test, foo, bar, lmp, nsel, trait, fixed, pln2, dF, F0)
             summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
             Sum.savesum("$test/summary.ser", summary)
         end

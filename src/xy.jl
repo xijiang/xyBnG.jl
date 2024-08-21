@@ -25,7 +25,7 @@ using xyBnG.Util
 using Mmap
 using Serialization
 
-const _nvldtype = 12
+const _nvldtype = 13
 
 """
     _type(x::Union{Int8, DataType})
@@ -52,6 +52,7 @@ function _type(x::Union{Int8,DataType})
         UInt128,
         Float32,
         Float64,
+        Bool,
     )
     if x isa Int8
         vt[x]
@@ -70,7 +71,7 @@ The header struct of an `xy` file. It consists of 8 `Int8` fields.
 - flus::Int8   # FLUS matrix type: full, lower triangle, upper triangle, symmetric(lower)
 - major::Int8  # 0 for loci majored, 1 for ID majored, or else
 - type::Int8   # element type of the matrix, determined by function _type
-- r::Int8      # reserved
+- r::Int8      # 1 for BitArray. 0 for others
 - u::Int8      # r and u are reserved
 It is by default as (x = 'x', y = 'y', v = ' ', flus = 'F', major = 0, type = 1, r = 0, u = 0).
 Or one can specify the fields by keyword arguments. For example,
@@ -82,8 +83,7 @@ header(x = 'x', y = 'y', v = ' ', flus = 'F', major = 0, type = Int8, r = 0, u =
 - 0 for SNP coding
 - 1 for IBD coding
 - 2 for genotype coding
-- 3 BitArray coding
-- 4+ else
+- 3+ else
 """
 mutable struct header
     x::Int8
@@ -640,7 +640,7 @@ function mapit(fxy::AbstractString)
     hdr = header(fxy)
     hdr.flus == Int8('F') || error("Only a full matrix is supported")
     m, n = dim(fxy)
-    if hdr.u == 3
+    if hdr.r == 1
         Mmap.mmap(fxy, BitArray, (m, n), 24)
     else
         Mmap.mmap(fxy, Matrix{_type(hdr.type)}, (m, n), 24)
@@ -660,7 +660,7 @@ here. Users are not supposed to use this function directly.
 """
 function tr8bit(fxy::AbstractString, bxy::AbstractString; bs = 2^16)
     hdr, (nhp, nlc) = header(fxy), dim(fxy)
-    hdr.u = 3
+    hdr.r = 1 # BitArray
     m = mapit(fxy)
     @info "  - Transposing $fxy to $bxy as a BitArray:"
     t = nothing
