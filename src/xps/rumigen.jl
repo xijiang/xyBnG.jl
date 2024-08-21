@@ -38,22 +38,23 @@ function rumigen(;
     baseDir = "tskit",
     testDir = "cattle",
     species = Cattle(5_000),
-    trait = Trait("milk", 0.25, 10000),
+    trait = Trait("growth", 0.25, 10000),
     nchp = 50_000,
     nref = 10_000,
     nrng = 5,
-    nsel = 20,
+    nsel = 10,
     plan = Plan(25, 50, 200),
     fixed = ["grt"],
     dF = 0.011,
     nrpt = 1,
     keep = true,
 )
-
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
-    isdir("$test") || mkpath("$test")
-    schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
+    isdir("$test") && rm("$test", force = true, recursive = true)
+    mkpath("$test")
+    CULLS = (gblup, ablup, iblup)
+    OCSS = (aaocs, iiocs, ggocs, agocs, igocs)
     scenario = (
         Data = data,
         BaseDir = baseDir,
@@ -68,7 +69,7 @@ function rumigen(;
         Fixed = fixed,
         ΔF = dF,
         Nrpt = nrpt,
-        Schemes = schemes,
+        Schemes = union(CULLS, OCSS),
     )
     savepar(scenario, "$test/scenario.par")
     isfile("$test/summary.ser") && rm("$test/summary.ser", force = true)
@@ -85,8 +86,6 @@ function rumigen(;
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
     pln2 = Plan(50, 50, 200)
 
-    F0 = 0.027
-
     # Simulations
     for irpt = 1:nrpt
         tag = lpad(irpt, ndigits(nrpt), '0')
@@ -94,14 +93,16 @@ function rumigen(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
-        for scheme in schemes
+        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag)
+        for scheme in CULLS
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
-            if occursin("blup", bar)
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
-            else
-                scheme(test, foo, bar, lmp, nsel, trait, fixed, pln2, dF, F0)
-            end
+            scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)
+            summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
+            Sum.savesum("$test/summary.ser", summary)
+        end
+        for scheme in OCSS
+            foo, bar = "$tag-rand", tag * '-' * string(scheme)
+            scheme(test, foo, bar, lmp, nsel, trait, fixed, pln2, dF, F0)
             summary = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
             Sum.savesum("$test/summary.ser", summary)
         end
@@ -113,30 +114,5 @@ function rumigen(;
     end
     open("$test/scenario.par", "a") do io
         println(io, "Ended: ", time())
-    end
-end
-
-"""
-    run_rumigen(op)
-Run the `rumigen` function to repeat previous results.
-"""
-function run_rumigen(op; dir = "/mnt/a/store/xybng")
-    if op == 1
-        # Simulation started: 2024-08-09T10:55:59.562
-        # Simulation finised: 2024-08-11T20:19:59.645
-        rumigen(data = dir, testDir = "rumigen/01", nrpt = 100)
-    elseif op == 2
-        # Simulation started: 2024-08-12T09:54:56.039
-        # Simulation finised: 2024-08-12T18:23:53.339
-        rumigen(data = dir, testDir = "rumigen/02", nrpt = 100, nrng = 0, nsel = 10)
-    elseif op == 3
-        # Simulation started: 2024-08-16T14:23:05.320
-        # Simulation finised: 2024-08-17T01:37:32.146
-        rumigen(data = dir, testDir = "rumigen/03", nrpt = 20)
-        # Simulation started: 2024-08-17T01:37:32.208
-        # Simulation finised: 2024-08-17T03:18:29.106
-        rumigen(data = dir, testDir = "rumigen/04", nrpt = 70, nrng = 0, nsel = 10)
-    else
-        @info "Be sure that 1 ≤ op ≤ 3. No operation is performed."
     end
 end

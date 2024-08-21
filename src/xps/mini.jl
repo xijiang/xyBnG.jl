@@ -21,7 +21,8 @@ function mini(;
 )
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
-    isdir("$test") || mkpath("$test")
+    isdir("$test") && rm("$test", force=true, recursive=true)
+    mkpath("$test")
     scenario = (
         Data = data,
         BaseDir = baseDir,
@@ -52,8 +53,6 @@ function mini(;
     fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
     #schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
     culls = (gblup, ablup)
-    F0 = 0.027
-
     # Simulations
     for irpt = 1:nrpt
         tag = lpad(irpt, ndigits(nrpt), '0')
@@ -61,7 +60,7 @@ function mini(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        lmp = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
+        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag)
         for scheme in culls
             foo, bar = "$tag-rand", tag * '-' * string(scheme)
             scheme(test, foo, bar, lmp, nsel, trait, fixed, plan)

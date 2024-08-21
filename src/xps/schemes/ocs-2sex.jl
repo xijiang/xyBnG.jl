@@ -68,8 +68,15 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection IIOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = zeros(nrow(ped), nrow(ped))
-    read!("$test/$foo.irm", G)
+    G = nothing
+    if isfile("$test/$foo.irm")
+        G = zeros(nrow(ped), nrow(ped))
+        read!("$test/$foo.irm", G)
+    else
+        @info "  - Calculating IBD relationship matrix"
+        G = irm(xy, lmp.chip, 1:nrow(ped))
+        write("$test/$foo.irm", G)
+    end
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
@@ -105,8 +112,15 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     @info "  - Directional selection DOSc for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = zeros(nrow(ped), nrow(ped))
-    read!("$test/$foo.irm", G)
+    G = nothing
+    if isfile("$test/$foo.irm")
+        G = zeros(nrow(ped), nrow(ped))
+        read!("$test/$foo.irm", G)
+    else
+        @info "  - Calculating IBD relationship matrix"
+        G = irm(xy, lmp.chip, 1:nrow(ped))
+        write("$test/$foo.irm", G)
+    end
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)

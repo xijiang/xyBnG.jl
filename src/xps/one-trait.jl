@@ -60,7 +60,7 @@ function one_trait(;
     println("\n")
     G = irm(xy, lmp.chip, ped.id)
     write("$tstDir/$bar.irm", G)
-    F0 = 0.027
+    F0 = 0.029
 
     act = md"""
     ## Act II: Directional selection on milk
@@ -81,7 +81,7 @@ function one_trait(;
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, milk)
         g22 = G[ids, ids]
-        ng = Select(ids, ped, g22, milk, plan.noff, dF, igrt; F0 = F0)
+        ng = Select(ids, ped, g22, milk, plan.noff, dF; F0 = F0)
         reproduce!(ng, ped, xy, lmp, milk)
     end
     println("\n")
@@ -106,7 +106,7 @@ function one_trait(;
         Predict!(ids, ped, fixed, giv, milk)
         g22 = G[ids, ids]
         mid = nrow(ped)
-        ng = Select(ids, ped, g22, milk, plan.noff, dF, igrt; F0 = F0)
+        ng = Select(ids, ped, g22, milk, plan.noff, dF; F0 = F0)
         reproduce!(ng, ped, xy, lmp, milk)
         # update the IBD relationship matrix
         G = xirm(G, xy, lmp.chip, mid, nrow(ped))
