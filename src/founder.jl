@@ -303,14 +303,10 @@ end
 Sample `2nid` haplotypes from file `fxy`, and `fmp`. Returns the haplotype
 matrix and their linkage map.
 """
-function sample_hps(
-    fxy::T,
-    fmp::T,
-    nid::Int,
-) where {T<:AbstractString}
+function sample_hps(fxy::T, fmp::T, nid::Int) where {T<:AbstractString}
     isfile(fxy) && isfile(fmp) || error("Files $fxy or $fmp not found")
     hdr = XY.header(fxy)
-    hdr.u ∈ (0, 1) || error("$fxy is not about haplotypes")
+    hdr.u ∈ (0, 1) && hdr.major == 0 || error("$fxy is not about haplotypes")
     _, nhp = XY.dim(fxy)
     aid = nhp ÷ 2
     nid ≤ aid || error("No enough ID ($aid) to sample")
@@ -330,7 +326,7 @@ function sample_hps(
             ref[ilc], alt[ilc] = alt[ilc], ref[ilc]
         end
     end
-    lmp.frq = vec(mean(sgt, dims=2))
+    lmp.frq = vec(mean(sgt, dims = 2))
     sgt, lmp
 end
 
@@ -351,7 +347,7 @@ function sample_loci(
     nlc::Int,
     name::AbstractString,
     pot::Vector{Int},
-    )
+)
     length(pool) ≥ nlc || error("Number of SNP required is larger than available")
     lmp[!, name] .= false
     loci = sort(shuffle(pool)[1:nlc])
@@ -378,7 +374,7 @@ function sample_xy(
     nchp::Int,
     nref::Int,
     trts::Trait...,
-    )
+)
     0.0 ≤ maf ≤ 0.5 || error("Minor allele frequency out of range")
     sgt, lmp = sample_hps(fxy, fmp, nid)
     pool = findall((lmp.frq .> maf) .&& (lmp.frq .< 1.0 - maf))

@@ -16,7 +16,7 @@ function dosblup(;
 )
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
-    isdir("$test") && rm("$test", force=true, recursive=true)
+    isdir("$test") && rm("$test", force = true, recursive = true)
     mkpath("$test")
     scenario = (
         Data = data,

@@ -58,7 +58,7 @@ function randbrd(test, foo, bar, lmp, ngn, trait, plan)
     serialize("$test/$bar.ped", ped)
     δF = 1 / 8plan.npa + 1 / 8plan.nma  # Falconer 1996, pp. 67
     n = ngn > 2 ? ngn - 1 : 0
-    1 - (1 - δF) ^ n # F0: expected inbreeding after random selection
+    1 - (1 - δF)^n # F0: expected inbreeding after random selection
 end
 
 """
