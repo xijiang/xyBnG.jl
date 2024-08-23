@@ -78,6 +78,9 @@ end
 
 """
     OC_fixsex2(EBV, A, K, c2)
+This function is to optimize contribution on the male side. It is modified such
+that this function has similar arguments as `TM1997` and `TM2024`. 
+
 - `c2` are fixed contribution of females (Σc₂ = 1).
 - A is relationship matrix of all animals
     - A11 = relationship of candidates
