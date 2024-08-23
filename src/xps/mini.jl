@@ -21,7 +21,7 @@ function mini(;
 )
     # Scenario recording
     base, test = "$data/$baseDir", "$data/$testDir"
-    isdir("$test") && rm("$test", force=true, recursive=true)
+    isdir("$test") && rm("$test", force = true, recursive = true)
     mkpath("$test")
     scenario = (
         Data = data,
@@ -69,7 +69,7 @@ function mini(;
         end
         if !keep
             for f in readdir("$test")
-                occursin(Regex("^$(tag)"), f) && rm("$test/$f", force=true)
+                occursin(Regex("^$(tag)"), f) && rm("$test/$f", force = true)
             end
         end
 

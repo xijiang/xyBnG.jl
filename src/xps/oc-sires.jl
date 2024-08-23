@@ -36,22 +36,22 @@ function ocssire(;
     base, test = "$data/$baseDir", "$data/$testDir"
     isdir("$test") || mkpath("$test")
     scenario = (
-        Data=data,
-        BaseDir=baseDir,
-        TestDir=testDir,
-        Species=species,
-        Trait=trait,
-        Nchp=nchp,
-        Nref=nref,
-        Nrng=nrng,
-        Nsel=nsel,
-        Plan=plan,
-        Fixed=fixed,
-        ΔF=dF,
-        Nrpt=nrpt,
+        Data = data,
+        BaseDir = baseDir,
+        TestDir = testDir,
+        Species = species,
+        Trait = trait,
+        Nchp = nchp,
+        Nref = nref,
+        Nrng = nrng,
+        Nsel = nsel,
+        Plan = plan,
+        Fixed = fixed,
+        ΔF = dF,
+        Nrpt = nrpt,
     )
     savepar(scenario, "$test/scenario.par")
-    isfile("$test/summary.ser") && rm("$test/summary.ser", force=true)
+    isfile("$test/summary.ser") && rm("$test/summary.ser", force = true)
 
     # Prepare a base population
     if !isfile("$base/desc.txt")

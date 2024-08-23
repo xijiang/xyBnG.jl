@@ -233,10 +233,10 @@ mutable struct header
     r::Int8      # 1 for BitArray. 0 for others
     u::Int8      # 0 for SNP coding, 1 for IBD coding, 2 for genotype coding, 3+ else
     function header(;
-        flus='F',  # full, lower triangle, upper triangle, symmetric
-        major=0,
-        type=1,
-        u=0,
+        flus = 'F',  # full, lower triangle, upper triangle, symmetric
+        major = 0,
+        type = 1,
+        u = 0,
     )
         flus ∉ "FLUS" ||
             major ∉ 0:1 ||
