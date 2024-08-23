@@ -306,7 +306,7 @@ matrix and their linkage map.
 function sample_hps(fxy::T, fmp::T, nid::Int) where {T<:AbstractString}
     isfile(fxy) && isfile(fmp) || error("Files $fxy or $fmp not found")
     hdr = XY.header(fxy)
-    hdr.u ∈ (0, 1) || error("$fxy is not about haplotypes")
+    hdr.u ∈ (0, 1) && hdr.major == 0 || error("$fxy is not about haplotypes")
     _, nhp = XY.dim(fxy)
     aid = nhp ÷ 2
     nid ≤ aid || error("No enough ID ($aid) to sample")

@@ -236,13 +236,15 @@ mutable struct header
         flus = 'F',  # full, lower triangle, upper triangle, symmetric
         major = 0,
         type = 1,
+        r = 0,
         u = 0,
     )
         flus ∉ "FLUS" ||
-            major ∉ 0:1 ||
+            major ∉ 0:2 ||
             type ∉ 1:_nvldtype ||
+            r ∉ 0:1 ||
             u < 0 && error("Invalid header")
-        new('x', 'y', ' ', flus, major, type, 0, u)
+        new('x', 'y', ' ', flus, major, type, r, u)
     end
 end
 
@@ -261,7 +263,7 @@ function Base.show(io::IO, h::header)
     else
         println(io, " with unknown coding.")
     end
-    println(io, "        -------")
+    println(io, "        -------:-------")
     m = join(Char.((h.x, h.y, h.v)))
     println(io, "The magic chars: '$m'.")
     if h.flus == Int8('F')

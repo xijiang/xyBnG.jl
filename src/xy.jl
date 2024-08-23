@@ -539,7 +539,7 @@ here. Users are not supposed to use this function directly.
 """
 function tr8bit(fxy::AbstractString, bxy::AbstractString; bs = 2^16)
     hdr, (nhp, nlc) = header(fxy), dim(fxy)
-    hdr.r = 1 # BitArray
+    hdr.r, hdr.major = 1, 0 # BitArray, and transposed to be locus majored
     m = mapit(fxy)
     @info "  - Transposing $fxy to $bxy as a BitArray:"
     t = nothing
