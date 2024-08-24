@@ -16,7 +16,7 @@ function mini(;
     plan = Plan(5, 10, 40),
     fixed = ["grt"],
     dF = 0.011,
-    nrpt = 1,
+    nrpt = 1, 
     keep = true,
 )
     # Scenario recording
@@ -41,16 +41,8 @@ function mini(;
     savepar(scenario, "$test/scenario.par")
     isfile("$test/summary.ser") && rm("$test/summary.ser", force = true)
 
-    # Prepare a base population
-    if !isfile("$base/desc.txt")
-        ts_base(species, base)
-    else
-        desc = readlines("$base/desc.txt")
-        parse(Int, desc[2]) < species.nid ||
-            desc[1] ≠ species.name && ts_base(cattle, baseDir)
-    end
-    sname = desc[1]
-    fxy, fmp, maf = "$base/$sname.xy", "$base/$sname.lmp", 0.0
+    chkbase(base, species) # Prepare/verify a base population
+    fxy, fmp, maf = "$base/$(species.name).xy", "$base/$(species.name).lmp", 0.0
     #schemes = (aaocs, iiocs, ggocs, agocs, igocs, gblup, ablup, iblup)
     culls = (gblup, ablup)
     # Simulations
