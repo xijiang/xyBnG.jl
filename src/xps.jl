@@ -28,6 +28,7 @@ include("xps/schemes/ocs-2sex.jl")
 include("xps/schemes/ocs-male.jl")
 
 # Examples
+include("xps/chkbase.jl")
 include("xps/init.jl")
 include("xps/a-tale-of-selction.jl")
 include("xps/one-trait.jl")

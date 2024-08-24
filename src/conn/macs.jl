@@ -63,21 +63,19 @@ function read_macs(file, trans = false)
 end
 
 """
-    function toxy(dir; swap = false, keep = false)
+    function toxy(dir; keep = false)
 Convert `MaCS` simulation results into `XY` format.  The `MaCS` files are of
-chr.chr-number and info.chr-number in `dir`.  The merged file are stored in
-`dir/macs.xy` and `dir/macs.lmp`. The genotypes are of BitArray of  `nLoci ×
-nID`, or `header.u = 3`.
-
-When `swap` is `true`, randomly swap the allele symbols of every other loci,
-i.e., 0 <--> 1. (2023-06-24)
+`chr.chr-number` and `info.chr-number` in `dir`.  The merged file are stored in
+`dir/(pop.name).xy` and `dir/(pop.name).lmp`. The genotypes are of BitArray of
+`nLoci × nID`, or `header.r = 1`.
 
 When `keep` is `true`, keep the original `MaCS` files.
 """
-function toxy(dir; swap = false, keep = false)
+function toxy(dir; keep = false)
     isdir(dir) || error("$dir not exists")
     @info "  - Collect genotypes simulated by `MaCS` in $dir"
-    fxy, fmd, fmp = joinpath.(dir, ["macs.xy", "mid.xy", "macs.lmp"])
+    fname = readline("$dir/desc.txt")
+    fxy, fmd, fmp = joinpath.(dir, ["$fname.xy", "mid.xy", "$fname.lmp"])
 
     chrs = Int8[]
     for f in readdir(dir)
@@ -87,7 +85,7 @@ function toxy(dir; swap = false, keep = false)
     lmp =
         DataFrame(chr = Int8[], pos = Int64[], ref = Char[], alt = Char[], frq = Float64[])
     hdr = XY.header(major = 1) # ID majored
-    tid, tlc = 0, 0
+    thp, tlc = 0, 0
     aa = (
         ('A', 'C'),
         ('A', 'G'),
@@ -103,22 +101,16 @@ function toxy(dir; swap = false, keep = false)
         ('T', 'G'),
     )
     open(fmd, "w") do io
-        write(io, Ref(hdr), [tid, tlc])
+        write(io, Ref(hdr), [thp, tlc])
         for c in chrs
             print(" $c")
             chr = joinpath(dir, "chr.$c")
             gt, ps, fq = read_macs(chr)
-            if swap # such that the allele frequencies has a 'U' shaped distribution
-                for i = 1:2:size(gt, 2)
-                    (gt[:, i] = 1 .- gt[:, i])
-                    fq[i] = 1 - fq[i]
-                end
-            end
-            tid = size(gt, 1)
+            thp = size(gt, 1)
             tlc += size(gt, 2)
             write(io, gt)
             ref, alt = Char[], Char[]
-            for i = 1:size(gt, 2)
+            for _ = 1:size(gt, 2)
                 x = aa[rand(1:12)]
                 push!(ref, x[1])
                 push!(alt, x[2])
@@ -126,7 +118,7 @@ function toxy(dir; swap = false, keep = false)
             append!(lmp, DataFrame(chr = c, pos = ps, ref = ref, alt = alt, frq = fq))
         end
     end
-    XY.dim!(fmd, tid, tlc)
+    XY.dim!(fmd, thp, tlc)
     serialize(fmp, lmp)
     println()
     XY.tr8bit(fmd, fxy)

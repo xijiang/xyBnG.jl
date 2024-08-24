@@ -150,7 +150,7 @@ function sample_ts(
 end
 
 """
-    macs_base(nid::Int, dir::AbstractString)
+    macs_base(pop::Cattle, dir::AbstractString)
 Simulate a populatoin with `MaCS` into `dir`. The parameters are adapted from
 ``https://academic.oup.com/g3journal/article/2/4/425/6026056?login=true#supplementary-data``.
 This simulation used the `Ne = 100` one.
@@ -158,7 +158,8 @@ This simulation used the `Ne = 100` one.
 Note, the command `macs` needs to be in a searchable path with no space
 character in it. Files like `chr.1`, `log.1` are generated.
 """
-function macs_base(nid::Int, dir::AbstractString)
+function macs_base(pop::Cattle, dir::AbstractString)
+    nid = pop.nid
     isdir(dir) || mkpath(dir)
     Ne = 100
     μ = 2.5e-8 * (4Ne)
@@ -277,6 +278,10 @@ function macs_base(nid::Int, dir::AbstractString)
         cmd = "$macs $(2nid) $(chr[i]) -t $μ -r $r" * eN
         cmd = Cmd(convert(Vector{String}, split(cmd)))
         run(pipeline(cmd, stdout = "$dir/chr.$i", stderr = "$dir/log.$i"))
+    end
+    open("$dir/desc.txt", "w") do io
+        println(io, pop.name)
+        println(io, pop.nid)
     end
     println()
 end
