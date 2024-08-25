@@ -52,10 +52,16 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
         p = frq[:, i] / nhp
         q = 1 .- p
         vgn[i] = sum(p .* q .* a2) # genic variance = ∑2pqa²
-        t = nn .&& frq[:, i] .== nhp
+        # raising of the floor
+        t = nn .&& frq[:, i] .== 0 # if negative and fixed at 0
         flr[i] = aa - 2sum(eff[t])
+        t = pp .&& frq[:, i] .== nhp
+        flr[i] += 2sum(eff[t])
+        # lowering of the ceiling
         t = pp .&& frq[:, i] .== 0
         clg[i] = bb - 2sum(eff[t])
+        t = nn .&& frq[:, i] .== nhp
+        clg[i] += 2sum(eff[t])
     end
     frq, flr, clg, vgn
 end
@@ -298,18 +304,17 @@ This is an amendment to the `xysum` function in directory `dir`, where the data
 are kept. This is needed when the formulae of some indices are changed.
 """
 function resum(dir::AbstractString, trait::Trait)
-    isfile("$dir/re-summary.ser") && rm("$dir/re-summary.ser", force = true)
-    lmp = deserialize("$dir/founder.lmp")
-    psm = deserialize("$dir/summary.ser")
-    nrpt, schemes = psm.repeat[end], unique(psm.scheme)
-    for i = 1:nrpt
-        tag = lpad(i, ndigits(nrpt), '0')
-        for scheme in schemes
-            xy = "$dir/$tag-$scheme.xy"
-            ped = deserialize("$dir/$tag-$scheme.ped")
-            ss = xysum(ped, xy, lmp, trait)
-            savesum("$dir/re-summary.ser", ss)
-        end
+    isfile("$dir/summary.ser") || error("No summary file found in $dir")
+    ss = deserialize("$dir/summary.ser")
+    mv("$dir/summary.ser", "$dir/summary.bak", force=true)
+    for (irpt, cskm) ∈ eachrow(unique(select(ss, :repeat, :scheme)))
+        @info "Processing repeat $irpt and scheme $cskm"
+        tag = lpad(irpt, ndigits(ss.repeat[end]), '0')
+        ped = deserialize("$dir/$tag-$cskm.ped")
+        lmp = deserialize("$dir/$tag-founder.lmp")
+        xy = "$dir/$tag-$cskm.xy"
+        ss = xysum(ped, xy, lmp, trait)
+        savesum("$dir/summary.ser", ss)
     end
 end
 
@@ -351,4 +356,5 @@ function fgrm(dir::AbstractString)
     ss.fgrm = F
     serialize("$dir/summary.ser", ss)
 end
+
 end # module Sum
