@@ -43,20 +43,21 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
     flr, clg, vgn = zeros(ng), zeros(ng), zeros(ng)
     a2 = 2eff .* eff  # => 2a²
     pp, nn = eff .> 0, eff .< 0
-    aa, bb = sum(eff[nn]), sum(eff[pp])
+    aa, bb = 2sum(eff[nn]), 2sum(eff[pp])
     for i = 1:ng
-        sub = view(mat, :, grt .== ug[i])
-        frq[:, i] = sum(sub, dims = 2)
-        nhp = sum(grt .== ug[i])
+        chp = grt .== ug[i]  # current haplotypes
+        sub = view(mat, :, chp)
+        copyto!(view(frq, :, i), sum(sub, dims = 2))
+        nhp = sum(chp)
         p = frq[:, i] / nhp
         q = 1 .- p
         vgn[i] = sum(p .* q .* a2) # genic variance = ∑2pqa²
         t = nn .&& frq[:, i] .== nhp
-        flr[i] = aa - sum(eff[t])
+        flr[i] = aa - 2sum(eff[t])
         t = pp .&& frq[:, i] .== 0
-        clg[i] = bb - sum(eff[t])
+        clg[i] = bb - 2sum(eff[t])
     end
-    frq, 2flr, 2clg, vgn
+    frq, flr, clg, vgn
 end
 
 """
@@ -312,4 +313,42 @@ function resum(dir::AbstractString, trait::Trait)
     end
 end
 
+"""
+    fgrm(dir::AbstractString)
+Update `summary.ser` with `F_grm`, which are calculated from the `xy` files in
+directory `dir`. GRM is calculated with the chip loci.
+"""
+function fgrm(dir::AbstractString)
+    isfile("$dir/summary.ser") || error("No summary file found in $dir")
+    ss = deserialize("$dir/summary.ser")
+    F, npd = Float64[], ndigits(ss.repeat[end])
+    for (irpt, cskm) ∈ eachrow(unique(select(ss, :repeat, :scheme)))
+        @info "Processing repeat $irpt and scheme $cskm"
+        tag = lpad(irpt, npd, '0')
+
+        # with linkage map
+        lmp = deserialize("$dir/$tag-founder.lmp")
+        chp = lmp.chip
+        frq = lmp.frq[chp]
+
+        # with pedigree
+        ped = deserialize("$dir/$tag-$cskm.ped")
+        grt = repeat(ped.grt, inner = 2)
+        ugt = unique(grt)
+        ngt = length(ugt)
+        tf = zeros(ngt)
+
+        # with haplotypes
+        hps = isodd.(XY.mapit("$dir/$tag-$cskm.xy"))
+        for igt ∈ 1:ngt
+            snps = view(hps, chp, grt .== ugt[igt])
+            gt = snps[:, 1:2:end] .+ snps[:, 2:2:end]
+            G = RS.grm(gt, p = frq)
+            tf[igt] = mean(diag(G) .- 1)
+        end
+        append!(F, tf)
+    end
+    ss.fgrm = F
+    serialize("$dir/summary.ser", ss)
+end
 end # module Sum
