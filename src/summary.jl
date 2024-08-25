@@ -43,20 +43,27 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
     flr, clg, vgn = zeros(ng), zeros(ng), zeros(ng)
     a2 = 2eff .* eff  # => 2a²
     pp, nn = eff .> 0, eff .< 0
-    aa, bb = sum(eff[nn]), sum(eff[pp])
+    aa, bb = 2sum(eff[nn]), 2sum(eff[pp])
     for i = 1:ng
-        sub = view(mat, :, grt .== ug[i])
-        frq[:, i] = sum(sub, dims = 2)
-        nhp = sum(grt .== ug[i])
+        chp = grt .== ug[i]  # current haplotypes
+        sub = view(mat, :, chp)
+        copyto!(view(frq, :, i), sum(sub, dims = 2))
+        nhp = sum(chp)
         p = frq[:, i] / nhp
         q = 1 .- p
         vgn[i] = sum(p .* q .* a2) # genic variance = ∑2pqa²
-        t = nn .&& frq[:, i] .== nhp
-        flr[i] = aa - sum(eff[t])
+        # raising of the floor
+        t = nn .&& frq[:, i] .== 0 # if negative and fixed at 0
+        flr[i] = aa - 2sum(eff[t])
+        t = pp .&& frq[:, i] .== nhp
+        flr[i] += 2sum(eff[t])
+        # lowering of the ceiling
         t = pp .&& frq[:, i] .== 0
-        clg[i] = bb - sum(eff[t])
+        clg[i] = bb - 2sum(eff[t])
+        t = nn .&& frq[:, i] .== nhp
+        clg[i] += 2sum(eff[t])
     end
-    frq, 2flr, 2clg, vgn
+    frq, flr, clg, vgn
 end
 
 """
@@ -297,19 +304,57 @@ This is an amendment to the `xysum` function in directory `dir`, where the data
 are kept. This is needed when the formulae of some indices are changed.
 """
 function resum(dir::AbstractString, trait::Trait)
-    isfile("$dir/re-summary.ser") && rm("$dir/re-summary.ser", force = true)
-    lmp = deserialize("$dir/founder.lmp")
-    psm = deserialize("$dir/summary.ser")
-    nrpt, schemes = psm.repeat[end], unique(psm.scheme)
-    for i = 1:nrpt
-        tag = lpad(i, ndigits(nrpt), '0')
-        for scheme in schemes
-            xy = "$dir/$tag-$scheme.xy"
-            ped = deserialize("$dir/$tag-$scheme.ped")
-            ss = xysum(ped, xy, lmp, trait)
-            savesum("$dir/re-summary.ser", ss)
-        end
+    isfile("$dir/summary.ser") || error("No summary file found in $dir")
+    ss = deserialize("$dir/summary.ser")
+    mv("$dir/summary.ser", "$dir/summary.bak", force=true)
+    for (irpt, cskm) ∈ eachrow(unique(select(ss, :repeat, :scheme)))
+        @info "Processing repeat $irpt and scheme $cskm"
+        tag = lpad(irpt, ndigits(ss.repeat[end]), '0')
+        ped = deserialize("$dir/$tag-$cskm.ped")
+        lmp = deserialize("$dir/$tag-founder.lmp")
+        xy = "$dir/$tag-$cskm.xy"
+        ss = xysum(ped, xy, lmp, trait)
+        savesum("$dir/summary.ser", ss)
     end
+end
+
+"""
+    fgrm(dir::AbstractString)
+Update `summary.ser` with `F_grm`, which are calculated from the `xy` files in
+directory `dir`. GRM is calculated with the chip loci.
+"""
+function fgrm(dir::AbstractString)
+    isfile("$dir/summary.ser") || error("No summary file found in $dir")
+    ss = deserialize("$dir/summary.ser")
+    F, npd = Float64[], ndigits(ss.repeat[end])
+    for (irpt, cskm) ∈ eachrow(unique(select(ss, :repeat, :scheme)))
+        @info "Processing repeat $irpt and scheme $cskm"
+        tag = lpad(irpt, npd, '0')
+
+        # with linkage map
+        lmp = deserialize("$dir/$tag-founder.lmp")
+        chp = lmp.chip
+        frq = lmp.frq[chp]
+
+        # with pedigree
+        ped = deserialize("$dir/$tag-$cskm.ped")
+        grt = repeat(ped.grt, inner = 2)
+        ugt = unique(grt)
+        ngt = length(ugt)
+        tf = zeros(ngt)
+
+        # with haplotypes
+        hps = isodd.(XY.mapit("$dir/$tag-$cskm.xy"))
+        for igt ∈ 1:ngt
+            snps = view(hps, chp, grt .== ugt[igt])
+            gt = snps[:, 1:2:end] .+ snps[:, 2:2:end]
+            G = RS.grm(gt, p = frq)
+            tf[igt] = mean(diag(G) .- 1)
+        end
+        append!(F, tf)
+    end
+    ss.fgrm = F
+    serialize("$dir/summary.ser", ss)
 end
 
 end # module Sum
