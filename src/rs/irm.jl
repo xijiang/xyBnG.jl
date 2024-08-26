@@ -13,6 +13,21 @@ function mibd(a::T, b::T, c::T, d::T) where {T<:AbstractVector}
 end
 
 """
+    irm(hps::AbstractMatrix)
+Calculate the mean IBD matrix for a haplotype matrix.
+"""
+function irm(hps::AbstractMatrix)
+    iseven(size(hps, 2)) || error("Not a haplotype matrix")
+    nid = size(hps, 2) ÷ 2
+    IBD = zeros(nid, nid)
+    Threads.@threads for (i, j) in [(i, j) for i = 1:nid for j = 1:i]
+        IBD[i, j] = mibd(hps[:, 2i - 1], hps[:, 2i], hps[:, 2j - 1], hps[:, 2j])
+        IBD[j, i] = IBD[i, j]
+    end
+    IBD
+end
+
+"""
     irm(xy::AbstractString, loc::Vector{Bool}, id::UnitRange{Int})
 
 Uses the IBD info stored in the `xy` file to generate a mean IBD matrix.
