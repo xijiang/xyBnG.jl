@@ -13,7 +13,22 @@ function mibd(a::T, b::T, c::T, d::T) where {T<:AbstractVector}
 end
 
 """
-    irm(xy::AbstractString, loc::Vector{Bool}, id::UnitRange{Int})
+    irm(hps::AbstractMatrix)
+Calculate the mean IBD matrix for a locus majored haplotype matrix.
+"""
+function irm(hps::AbstractMatrix)
+    iseven(size(hps, 2)) || error("Not a haplotype matrix")
+    nid = size(hps, 2) ÷ 2
+    IBD = zeros(nid, nid)
+    Threads.@threads for (i, j) in [(i, j) for i = 1:nid for j = 1:i]
+        IBD[i, j] = mibd(hps[:, 2i - 1], hps[:, 2i], hps[:, 2j - 1], hps[:, 2j])
+        IBD[j, i] = IBD[i, j]
+    end
+    IBD
+end
+
+"""
+    irm(xy::AbstractString, loc::Vector{Bool}, id::AbstractVector{Int})
 
 Uses the IBD info stored in the `xy` file to generate a mean IBD matrix.
 
@@ -21,7 +36,7 @@ Uses the IBD info stored in the `xy` file to generate a mean IBD matrix.
 - `loc` is a Bool vector, specifies which loci to be used,
 - `id` specifies the ID whose gamete matrix is to be generated.
 """
-function irm(xy::AbstractString, loc::Vector{Bool}, id::UnitRange{Int})
+function irm(xy::AbstractString, loc::Vector{Bool}, id::AbstractVector{Int})
     hdr, (nlc, nhp), nid = XY.header(xy), XY.dim(xy), length(id)
 
     hdr.u == 1 || error("Not a uniquely coded SNP file")
@@ -30,18 +45,8 @@ function irm(xy::AbstractString, loc::Vector{Bool}, id::UnitRange{Int})
 
     type = XY._type(hdr.type)
     gt = mmap(xy, Matrix{type}, (nlc, nhp), 24)
-    IBD = zeros(nid, nid)
-    idx = eachindex(id)
-    Threads.@threads for (i, j) in [(i, j) for i in idx for j = 1:i]
-        IBD[i, j] = mibd(
-            view(gt, loc, 2id[i] - 1),
-            view(gt, loc, 2id[i]),
-            view(gt, loc, 2id[j] - 1),
-            view(gt, loc, 2id[j]),
-        )
-        IBD[j, i] = IBD[i, j]
-    end
-    IBD
+    idx = sort([collect(2id .- 1); collect(2id)])
+    irm(view(gt, loc, idx))
 end
 
 """
