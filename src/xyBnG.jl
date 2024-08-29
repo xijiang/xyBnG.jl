@@ -10,11 +10,9 @@ include("relationship.jl")
 include("summary.jl")
 include("xps.jl")
 
-import xyBnG.xyTypes: Species, Cattle, Trait
+import xyBnG.xyTypes: Species, Cattle, Trait, Plan
 import xyBnG.Founder: ts_base
-import xyBnG.xps: devel
 
-export Species, Cattle, Trait, ts_base
-export devel
+export Species, Cattle, Trait, Plan, ts_base
 
 end # module xyBnG
