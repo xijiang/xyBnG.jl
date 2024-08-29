@@ -36,7 +36,7 @@ Uses the IBD info stored in the `xy` file to generate a mean IBD matrix.
 - `loc` is a Bool vector, specifies which loci to be used,
 - `id` specifies the ID whose gamete matrix is to be generated.
 """
-function irm(xy::AbstractString, loc::Vector{Bool}, id::AbstractVector{Int})
+function irm(xy::AbstractString, loc::AbstractVector{Bool}, id::AbstractVector{Int})
     hdr, (nlc, nhp), nid = XY.header(xy), XY.dim(xy), length(id)
 
     hdr.u == 1 || error("Not a uniquely coded SNP file")
@@ -59,9 +59,9 @@ information can be obtained from dense genotypes very accurately.
 """
 function irm(
     xy::AbstractString, # uniquely coded genotypes
-    loc::Vector{Bool}, # specify which loci to be used
-    id::UnitRange{Int}, # specify which IDs to be used
-    jd::UnitRange{Int}, # specify which IDs to be used
+    loc::AbstractVector{Bool}, # specify which loci to be used
+    id::AbstractVector{Int}, # specify which IDs to be used
+    jd::AbstractVector{Int}, # specify which IDs to be used
 )
     hdr, (nlc, nhp) = XY.header(xy), XY.dim(xy)
     hdr.u == 1 || error("Not a uniquely coded SNP file")
