@@ -47,11 +47,11 @@ function phenotype!(
         ft = "ft_$(trt.name)"
         gt = "gt_$(trt.name)"
         if !hasproperty(ped, ft)
-            tmp = Vector{Union{Missing,trt.type}}(missing, nrow(ped))
+            tmp = Vector{Union{Missing,trt.type}}(missing, size(ped, 1))
             ped[!, ft] = tmp
         end
         sde = sqrt(1.0 / trt.h2 - 1.0 - trt.vd)
-        id = zeros(Bool, nrow(ped))
+        id = zeros(Bool, size(ped, 1))
         id[ID] .= true
         if trt.sex ≠ 2 # not all sexes have phenotype
             id = id .&& ped.sex .== trt.sex

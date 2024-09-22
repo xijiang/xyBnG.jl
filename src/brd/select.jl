@@ -52,7 +52,7 @@ function Select(
     mas = gps[1].id[1:plan.nma]
     pas = gps[2].id[1:plan.npa]
     ng = mate(pas, mas, plan)
-    ng.id .+= nrow(ped)
+    ng.id .+= size(ped, 1)
     ng.grt .+= maximum(ped.grt[ID])
     ng
 end
@@ -73,7 +73,7 @@ function Select(
 ) where {T<:Integer}
     @debug "Selection on $(join(keys(dic), ", "))"
     df = select(view(ped, ID, :), :id, :sex, r"ebv_")
-    index = zeros(nrow(df))
+    index = zeros(size(df, 1))
     for trt in keys(dic)
         index += df[!, "ebv_"*trt] * dic[trt]
     end
@@ -83,7 +83,7 @@ function Select(
     mas = gps[1].id[1:plan.nma]
     pas = gps[2].id[1:plan.npa]
     ng = mate(pas, mas, plan)
-    ng.id .+= nrow(ped)
+    ng.id .+= size(ped, 1)
     ng.grt .+= ped.grt[end]
     ng
 end
@@ -127,7 +127,7 @@ function Select(
     ns = noff ÷ 2
     nd = noff - ns
     DataFrame(
-        id = nrow(ped)+1:nrow(ped)+noff,
+        id = size(ped, 1)+1:size(ped, 1)+noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
         sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
@@ -191,7 +191,7 @@ function Select(
     ns = plan.noff ÷ 2
     nd = plan.noff - ns
     DataFrame(
-        id = nrow(ped)+1:nrow(ped)+plan.noff,
+        id = size(ped, 1)+1:size(ped, 1)+plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
         sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),

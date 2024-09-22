@@ -155,13 +155,13 @@ function macs_base(pop::Cattle, dir::AbstractString)
             80000,
         ] / Ne
     eN = ""
-    for i = 1:length(tm)
+    for i ∈ eachindex(tm) # = 1:length(tm)
         eN *= " -eN $(tm[i]) $(ps[i])"
     end
     macs = Sys.which("macs")
     (isnothing(macs) || any(isspace.(collect(macs)))) && error("Command `macs` error")
     @info "  - Simulating a cattle population with MaCS into $dir"
-    Threads.@threads for i = 1:length(chr)
+    Threads.@threads for i ∈ eachindex(chr) # = 1:length(chr)
         print(" $i")
         cmd = "$macs $(2nid) $(chr[i]) -t $μ -r $r" * eN
         cmd = Cmd(convert(Vector{String}, split(cmd)))

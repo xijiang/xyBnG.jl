@@ -95,7 +95,7 @@ function one_trait(;
     xy = "$tstDir/$bar.xy"
     cp("$tstDir/$foo.xy", xy, force = true)
     ped = deserialize("$tstDir/$foo.ped")
-    G = zeros(nrow(ped), nrow(ped))
+    G = zeros(size(ped, 1), size(ped, 1))
     read!("$tstDir/$foo.irm", G)
     @info "  - Operating on generation:"
     for igrt = 1:nsel
@@ -105,11 +105,11 @@ function one_trait(;
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, milk)
         g22 = G[ids, ids]
-        mid = nrow(ped)
+        mid = size(ped, 1)
         ng = Select(ids, ped, g22, milk, plan.noff, dF; F0 = F0)
         reproduce!(ng, ped, xy, lmp, milk)
         # update the IBD relationship matrix
-        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
+        G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
     end
     println("\n")
     serialize("$tstDir/$bar.ped", ped)

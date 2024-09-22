@@ -100,11 +100,11 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
     cp("$test/$foo.xy", xy, force = true)
     G = nothing
     if isfile("$test/$foo.irm")
-        G = zeros(nrow(ped), nrow(ped))
+        G = zeros(size(ped, 1), size(ped, 1))
         read!("$test/$foo.irm", G)
     else
         @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:nrow(ped))
+        G = irm(xy, lmp.chip, 1:size(ped, 1))
         write("$test/$foo.irm", G)
     end
     for ign = 1:ngn
@@ -113,10 +113,10 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
         phenotype!(ids, ped, trait)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
-        mid = nrow(ped)
+        mid = size(ped, 1)
         ng = Select(ids, plan, ped, trait)
         reproduce!(ng, ped, xy, lmp, trait)
-        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
+        G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
     end
     println()
     serialize("$test/$bar.ped", ped)

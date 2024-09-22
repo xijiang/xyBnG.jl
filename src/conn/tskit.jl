@@ -132,7 +132,7 @@ function sample2xy(
     end
     println()
     @info "  - writing haplotypes into $dst by haplotype"
-    tlc = nrow(lmp)
+    tlc = size(lmp, 1)
     loci, set = [], 'A'
     for x in nlc
         ss = sort(shuffle(1:tlc)[1:x]) # a SNP set

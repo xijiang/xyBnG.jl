@@ -78,7 +78,7 @@ function sample_ts(
         sex=rand(Int8.(0:1), nid),
         grt=Int16(1),
     )
-    snps = mmap("$tdir/$name.xy", Matrix{Int8}, (nrow(lmp), 2nid), 24)
+    snps = mmap("$tdir/$name.xy", Matrix{Int8}, (size(lmp, 1), 2nid), 24)
     for t in trts
         qtl = lmp[!, t.name]
         Q = snps[qtl, 1:2:end] + snps[qtl, 2:2:end]
@@ -138,7 +138,7 @@ function sample_hps(fxy::T, fmp::T, nid::Int) where {T<:AbstractString}
     lmp = deserialize(fmp)
     # Randomly change the allele names
     ref, alt = lmp.ref, lmp.alt
-    for ilc ∈ 1:size(sgt, 1)
+    for ilc ∈ axes(sgt, 1)
         if rand(Bool)
             sgt[ilc, :] .= 1 .- sgt[ilc, :]
             ref[ilc], alt[ilc] = alt[ilc], ref[ilc]
