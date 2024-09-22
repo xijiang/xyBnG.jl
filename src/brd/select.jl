@@ -52,7 +52,7 @@ function Select(
     mas = gps[1].id[1:plan.nma]
     pas = gps[2].id[1:plan.npa]
     ng = mate(pas, mas, plan)
-    ng.id .+= nrow(ped)
+    ng.id .+= size(ped, 1)
     ng.grt .+= maximum(ped.grt[ID])
     ng
 end
@@ -73,7 +73,7 @@ function Select(
 ) where {T<:Integer}
     @debug "Selection on $(join(keys(dic), ", "))"
     df = select(view(ped, ID, :), :id, :sex, r"ebv_")
-    index = zeros(nrow(df))
+    index = zeros(size(df, 1))
     for trt in keys(dic)
         index += df[!, "ebv_"*trt] * dic[trt]
     end
@@ -83,7 +83,7 @@ function Select(
     mas = gps[1].id[1:plan.nma]
     pas = gps[2].id[1:plan.npa]
     ng = mate(pas, mas, plan)
-    ng.id .+= nrow(ped)
+    ng.id .+= size(ped, 1)
     ng.grt .+= ped.grt[end]
     ng
 end
@@ -96,8 +96,9 @@ end
         F0 = 0.0, ocs = TM1997, rev = true,
     ) where {T<:Integer}
 Optimal contribution selection on trait `trt` in DataFrame `ped` with
-relationship matrix `rs` and constraint function `ocs`. `ID` are the candidate individuals. `F0` is the population inbreeding coefficient before selection
-and `dF` is the target inbreeding coefficient increment after selection. A
+relationship matrix `rs` and constraint function `ocs`. `ID` are the candidate
+individuals. `F0` is the population inbreeding coefficient before selection and
+`dF` is the target inbreeding coefficient increment after selection. A
 constraint `K` is calculated with `F0` and `dF` for the `igrt` generation. The
 contribution of each individual in `ID` is calculated with function `ocs`. The
 `noff` offspring are randomly selected weighted on their contribution `c`.
@@ -127,7 +128,7 @@ function Select(
     ns = noff ÷ 2
     nd = noff - ns
     DataFrame(
-        id = nrow(ped)+1:nrow(ped)+noff,
+        id = size(ped, 1)+1:size(ped, 1)+noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
         sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),
@@ -191,7 +192,7 @@ function Select(
     ns = plan.noff ÷ 2
     nd = plan.noff - ns
     DataFrame(
-        id = nrow(ped)+1:nrow(ped)+plan.noff,
+        id = size(ped, 1)+1:size(ped, 1)+plan.noff,
         sire = pm[:, 1],
         dam = pm[:, 2],
         sex = shuffle([ones(Int8, ns); zeros(Int8, nd)]),

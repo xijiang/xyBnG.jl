@@ -13,7 +13,7 @@ using Markdown
 using Mmap
 using Random
 using Serialization
-using Term
+using Statistics
 using xyBnG.XY
 using xyBnG.Conn
 using xyBnG.Sum

@@ -50,7 +50,7 @@ function aaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 end
 
 """
-    iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+    iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
 Optimal contribution selection with `IBD` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
 SNP linkage information are in DataFrame `lmp`. The results are saved in
@@ -64,17 +64,18 @@ This function uses the TM1997 algorithm for OCS.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection IIOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
     G = nothing
     if isfile("$test/$foo.irm")
-        G = zeros(nrow(ped), nrow(ped))
+        G = zeros(size(ped, 1), size(ped, 1))
         read!("$test/$foo.irm", G)
+        G += ε * I
     else
         @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:nrow(ped))
+        G = irm(xy, lmp.chip, 1:size(ped, 1))
         write("$test/$foo.irm", G)
     end
     for ign = 1:ngn
@@ -84,10 +85,13 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        mid = nrow(ped)
+        mid = size(ped, 1)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
-        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
+        G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
+        for i in mid:size(G, 1)
+            G[i, i] += ε
+        end
     end
     println()
     serialize("$test/$bar.ped", ped)
@@ -114,11 +118,11 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
     cp("$test/$foo.xy", xy, force = true)
     G = nothing
     if isfile("$test/$foo.irm")
-        G = zeros(nrow(ped), nrow(ped))
+        G = zeros(size(ped, 1), size(ped, 1))
         read!("$test/$foo.irm", G)
     else
         @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:nrow(ped))
+        G = irm(xy, lmp.chip, 1:size(ped, 1))
         write("$test/$foo.irm", G)
     end
     for ign = 1:ngn
@@ -128,10 +132,10 @@ function iidos(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
-        mid = nrow(ped)
+        mid = size(ped, 1)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0, ocs = TM2024)
         reproduce!(ng, ped, xy, lmp, trait)
-        G = xirm(G, xy, lmp.chip, mid, nrow(ped))
+        G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
     end
     println()
     serialize("$test/$bar.ped", ped)
@@ -176,7 +180,7 @@ end
 =#
 
 """
-    ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+    ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
 Optimal contribution selection with `G` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
 SNP linkage information are in DataFrame `lmp`. The results are saved in
@@ -192,7 +196,7 @@ option `ong` is set to `true`.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`agocs`](@ref), [`igocs`](@ref).
 """
-function ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+function ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection GGOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -200,7 +204,7 @@ function ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
-        G = grm(xy, lmp.chip, lmp.frq)
+        G = grm(xy, lmp.chip, lmp.frq) + ε * I
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         g22 = G[ids, ids]
@@ -212,7 +216,7 @@ function ggocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 end
 
 """
-    agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0)
+    agocs(test, foo, bar, lmp, ngn, trait, fixed, noff, dF, F0; ε = 1e-6)
 Optimal contribution selection with `G` relationship matrix for EBV, `A`
 relationship matrix for constraint on `foo`.xy and `foo`.ped in directory `test`
 for `ngn` generations. SNP linkage information are in DataFrame `lmp`. The
@@ -227,7 +231,7 @@ This function uses the TM1997 algorithm for OCS.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`igocs`](@ref).
 """
-function agocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+function agocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection AGOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -235,7 +239,7 @@ function agocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
-        G = grm(xy, lmp.chip, lmp.frq)
+        G = grm(xy, lmp.chip, lmp.frq) + ε * I
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         G = nrm(ped)
@@ -248,7 +252,7 @@ function agocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 end
 
 """
-    igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+    igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
 Optimal contribution selection with `G` relationship matrix for EBV, `IBD`
 relationship matrix for constraint on `foo`.xy and `foo`.ped in directory `test`
 for `ngn` generations. SNP linkage information are in DataFrame `lmp`. The
@@ -263,7 +267,7 @@ This function uses the TM1997 algorithm for OCS.
 See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`agocs`](@ref).
 """
-function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection IGOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
@@ -271,10 +275,10 @@ function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
         phenotype!(ids, ped, trait)
-        G = grm(xy, lmp.chip, lmp.frq)
+        G = grm(xy, lmp.chip, lmp.frq) + ε * I
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
-        mid = nrow(ped)
+        mid = size(ped, 1)
         g22 = irm(xy, lmp.chip, mid+1-length(ids):mid)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)

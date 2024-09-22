@@ -73,7 +73,7 @@ function ocssire(;
         @info "==========> Repeat: $tag / $nrpt <=========="
         @info "  - Prepare a founder population"
 
-        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag, true)
+        lmp, F0 = initPop(fxy, fmp, test, plan, maf, nchp, nref, nrng, trait, tag)
         # for scheme in schemes
         #     foo, bar = "$tag-rand", tag * '-' * string(scheme)
         #     if occursin("blup", bar)

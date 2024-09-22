@@ -5,12 +5,12 @@ function reproduce!(
     lmp::DataFrame,
     trts::Trait...,
 )
-    @debug "Reproduce the $(nrow(ng)) offspring"
+    @debug "Reproduce the $(size(ng, 1)) offspring"
     lms = sumMap(lmp)
     hdr, (nlc, nhp) = XY.header(xy), XY.dim(xy)
     etp = XY._type(hdr.type)
     pg = mmap(xy, Matrix{etp}, (nlc, nhp), 24)
-    og = zeros(etp, nlc, 2nrow(ng))
+    og = zeros(etp, nlc, 2size(ng, 1))
     drop(pg, og, [ng.sire ng.dam], lms)
     XY.append!(xy, og)
     for trt in trts
