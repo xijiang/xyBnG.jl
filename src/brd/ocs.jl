@@ -19,10 +19,10 @@ The column `idx` can be EBV of a trait, e.g., ``select(ped, "ebv_milk => "idx",
 
 The function returns a vector of coefficients for the contribution of each ID.
 """
-function TM1997(ped, A, K; least = 10)
+function TM1997(ped, A, K)
     ["idx", "sex"] ⊆ names(ped) || error("Not a proper pedigree")
     issymmetric(A) || error("A is not symmetric")
-    nid, itr = size(ped, 1), 0
+    nid, itr = nrow(ped), 0
     size(A, 1) == nid || error("A and ped do not match")
     id = 1:nid
 
@@ -41,11 +41,7 @@ function TM1997(ped, A, K; least = 10)
         λ = QAQi * (Q'Ai * u .- λ₀)
         c = Ai * (u - Q * λ) / (2λ₀)
         ix = findall(c .> 0) # indices of ID of next round
-        if length(ix) < least
-            ix = setdiff(1:length(c), findmin(c)[2])
-            length(ix) < least && (ix = 1:length(id))
-        end
-        if length(ix) == length(id) || itr > 1000
+        if length(ix) == length(id)
             rc = zeros(nid)
             rc[id] = c
             return rc

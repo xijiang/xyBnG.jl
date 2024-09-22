@@ -29,7 +29,7 @@ function savepar(scenario, file)
         print(io, String(take!(ios)))
         print(io, String(take!(iom)))
     end
-    foo = dirname(@__DIR__) * "/../sum/summary.ipynb"
-    bar = dirname(file) * "/sums.ipynb"
+    foo = joinpath(dirname(@__DIR__), "sum/summary.ipynb")
+    bar = joinpath(dirname(file), "sums.ipynb")
     cp(foo, bar, force=true)
 end

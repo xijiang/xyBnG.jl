@@ -96,8 +96,9 @@ end
         F0 = 0.0, ocs = TM1997, rev = true,
     ) where {T<:Integer}
 Optimal contribution selection on trait `trt` in DataFrame `ped` with
-relationship matrix `rs` and constraint function `ocs`. `ID` are the candidate individuals. `F0` is the population inbreeding coefficient before selection
-and `dF` is the target inbreeding coefficient increment after selection. A
+relationship matrix `rs` and constraint function `ocs`. `ID` are the candidate
+individuals. `F0` is the population inbreeding coefficient before selection and
+`dF` is the target inbreeding coefficient increment after selection. A
 constraint `K` is calculated with `F0` and `dF` for the `igrt` generation. The
 contribution of each individual in `ID` is calculated with function `ocs`. The
 `noff` offspring are randomly selected weighted on their contribution `c`.

@@ -13,7 +13,7 @@ using Serialization
 using Statistics
 using xyBnG.XY
 using xyBnG.RS
-import xyBnG.xyTypes: Trait
+import xyBnG.xyTypes: Cattle, Species, Trait, Plan, name
 
 include("sum/savepar.jl")
 include("sum/tibd.jl")
