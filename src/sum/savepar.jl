@@ -31,5 +31,5 @@ function savepar(scenario, file)
     end
     foo = joinpath(dirname(@__DIR__), "sum/summary.ipynb")
     bar = joinpath(dirname(file), "sums.ipynb")
-    cp(foo, bar, force=true)
+    cp(foo, bar, force = true)
 end

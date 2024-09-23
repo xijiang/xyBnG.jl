@@ -54,7 +54,7 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     haps = XY.mapit(xy)
     ped.iF = tibd(view(haps, lmp.chip, :))
     frq, flr, clg, vgn =
-        FFCV(isodd.(haps), repeat(ped.grt, inner=2), lmp[!, trait.name*"_a"])
+        FFCV(isodd.(haps), repeat(ped.grt, inner = 2), lmp[!, trait.name*"_a"])
     A = RS.nrm(ped)
     ped.aF = diag(A) .- 1
     trt = trait.name

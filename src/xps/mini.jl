@@ -16,7 +16,7 @@ function mini(;
     plan = Plan(5, 10, 40),
     fixed = ["grt"],
     dF = 0.011,
-    nrpt = 1, 
+    nrpt = 1,
     keep = true,
 )
     # Scenario recording

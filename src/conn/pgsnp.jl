@@ -16,7 +16,8 @@ function toxy(dir::AbstractString; keep = false)
         occursin.(r"^chr", f) && push!(chrs, parse(Int8, split(f, '.')[2]))
     end
     sort!(chrs)
-    lmp = DataFrame(chr = Int8[], pos = Int64[], ref = Char[], alt = Char[], frq = Float64[])
+    lmp =
+        DataFrame(chr = Int8[], pos = Int64[], ref = Char[], alt = Char[], frq = Float64[])
     hdr = XY.header()
     fs = []
     for c in chrs
@@ -30,7 +31,7 @@ function toxy(dir::AbstractString; keep = false)
     end
     open(fxy, "w") do io
         write(io, Ref(hdr), [tlc, 2nid])
-        for ihp in 1:2nid
+        for ihp = 1:2nid
             for f in fs
                 line = readline(f)
                 write(io, Int8.(collect(line) .- '0'))
@@ -57,7 +58,7 @@ function toxy(dir::AbstractString; keep = false)
             line = readline(f)
             ps, fq = parse.(Int, split(line))
             ref, alt = aa[rand(1:12)]
-            push!(lmp, (chrs[c], ps, ref, alt, fq/(2nid)))
+            push!(lmp, (chrs[c], ps, ref, alt, fq / (2nid)))
         end
         c += 1
         close(f)

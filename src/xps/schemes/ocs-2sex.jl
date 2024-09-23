@@ -88,7 +88,7 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
-        for i in mid+1:size(G, 1)
+        for i = mid+1:size(G, 1)
             G[i, i] += ε
         end
     end
