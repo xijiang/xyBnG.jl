@@ -1,3 +1,5 @@
+import xyBnG.Util: blksz
+
 """
     grm(gt::AbstractArray; p::Union{Bool, AbstractVector{Float64}} = false)
 

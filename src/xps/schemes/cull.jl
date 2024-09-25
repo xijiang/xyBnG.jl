@@ -98,15 +98,7 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan; ε = 1e-6)
     @info "  - Directional selection IBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = nothing
-    if isfile("$test/$foo.irm")
-        G = zeros(size(ped, 1), size(ped, 1))
-        read!("$test/$foo.irm", G)
-    else
-        @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:size(ped, 1)) + ε * I
-        write("$test/$foo.irm", G)
-    end
+    G = fileIRM("$test/$foo.irm", xy, lmp.chip, 1:size(ped, 1); ε = ε)
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
