@@ -16,7 +16,7 @@ function FFCV(mat::AbstractMatrix, grt::AbstractVector, eff::AbstractVector{Floa
     for i = 1:ng
         chp = grt .== ug[i]  # current haplotypes
         sub = view(mat, :, chp)
-        copyto!(view(frq, :, i), sum(sub, dims=2))
+        copyto!(view(frq, :, i), sum(sub, dims = 2))
         nhp = sum(chp)
         p = frq[:, i] / nhp
         q = 1 .- p

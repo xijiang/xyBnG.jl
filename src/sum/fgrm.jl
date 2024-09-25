@@ -18,7 +18,7 @@ function fgrm(dir::AbstractString)
 
         # with pedigree
         ped = deserialize("$dir/$tag-$cskm.ped")
-        grt = repeat(ped.grt, inner=2)
+        grt = repeat(ped.grt, inner = 2)
         ugt = unique(grt)
         ngt = length(ugt)
         tf = zeros(ngt)
@@ -28,7 +28,7 @@ function fgrm(dir::AbstractString)
         for igt ∈ 1:ngt
             snps = view(hps, chp, grt .== ugt[igt])
             gt = snps[:, 1:2:end] .+ snps[:, 2:2:end]
-            G = RS.grm(gt, p=frq)
+            G = RS.grm(gt, p = frq)
             tf[igt] = mean(diag(G) .- 1)
         end
         append!(F, tf)

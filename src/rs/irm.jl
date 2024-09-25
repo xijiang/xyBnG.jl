@@ -21,7 +21,7 @@ function irm(hps::AbstractMatrix)
     nid = size(hps, 2) ÷ 2
     IBD = zeros(nid, nid)
     Threads.@threads for (i, j) in [(i, j) for i = 1:nid for j = 1:i]
-        IBD[i, j] = mibd(hps[:, 2i - 1], hps[:, 2i], hps[:, 2j - 1], hps[:, 2j])
+        IBD[i, j] = mibd(hps[:, 2i-1], hps[:, 2i], hps[:, 2j-1], hps[:, 2j])
         IBD[j, i] = IBD[i, j]
     end
     IBD

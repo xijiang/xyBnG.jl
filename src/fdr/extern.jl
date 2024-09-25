@@ -17,7 +17,7 @@ function ts_base(pop::Cattle, dir::AbstractString)
         cmd = pipeline(
             `stdpopsim BosTau -c $chr -o $dir/$chr.ts
  -d HolsteinFriesian_1M13 Holstein_Friesian:$(pop.nid)`,
-            stderr=devnull,
+            stderr = devnull,
         )
         run(cmd)
     end
@@ -165,7 +165,7 @@ function macs_base(pop::Cattle, dir::AbstractString)
         print(" $i")
         cmd = "$macs $(2nid) $(chr[i]) -t $μ -r $r" * eN
         cmd = Cmd(convert(Vector{String}, split(cmd)))
-        run(pipeline(cmd, stdout="$dir/chr.$i", stderr="$dir/log.$i"))
+        run(pipeline(cmd, stdout = "$dir/chr.$i", stderr = "$dir/log.$i"))
     end
     open("$dir/desc.txt", "w") do io
         println(io, pop.name)

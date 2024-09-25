@@ -26,6 +26,7 @@ import xyBnG.RS: nrm, irm, grm, xirm
 include("xps/schemes/cull.jl")
 include("xps/schemes/ocs-2sex.jl")
 include("xps/schemes/ocs-male.jl")
+include("xps/schemes/file-irm.jl")
 
 # Examples
 include("xps/chkbase.jl")

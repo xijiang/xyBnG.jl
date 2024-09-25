@@ -68,15 +68,7 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection IIOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = nothing
-    if isfile("$test/$foo.irm")
-        G = zeros(size(ped, 1), size(ped, 1))
-        read!("$test/$foo.irm", G)
-    else
-        @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:size(ped, 1)) + ε * I
-        write("$test/$foo.irm", G)
-    end
+    G = fileIRM("$test/$foo.irm", xy, lmp.chip, 1:size(ped, 1); ε = ε)
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
@@ -88,7 +80,7 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
-        for i in mid+1:size(G, 1)
+        for i = mid+1:size(G, 1)
             G[i, i] += ε
         end
     end
@@ -278,7 +270,7 @@ function igocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         mid = size(ped, 1)
-        g22 = irm(xy, lmp.chip, mid+1-length(ids):mid)
+        g22 = irm(xy, lmp.chip, mid+1-length(ids):mid) + ε * I
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end

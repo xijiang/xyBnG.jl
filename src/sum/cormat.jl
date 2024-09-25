@@ -35,7 +35,7 @@ function cormat(dir::AbstractString)
 
         # with pedigree
         ped = deserialize("$dir/$tag-$cskm.ped")
-        grt = repeat(ped.grt, inner=2)
+        grt = repeat(ped.grt, inner = 2)
         ugt = unique(grt)
         ngt = length(ugt)
         A = RS.nrm(ped)
@@ -46,7 +46,7 @@ function cormat(dir::AbstractString)
             usnp = view(hps, ref, grt .== ugt[igt])
             D = RS.irm(usnp)
             gt = isodd.(usnp[:, 1:2:end]) + isodd.(usnp[:, 2:2:end])
-            G = RS.grm(gt, p=frq)
+            G = RS.grm(gt, p = frq)
             id = ped.grt .== ugt[igt]
             Aid = view(A, id, id)
             push!(cag, cormat(Aid, G))

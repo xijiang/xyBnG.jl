@@ -84,7 +84,7 @@ function ablup(test, foo, bar, lmp, ngn, trait, fixed, plan)
 end
 
 """
-    iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
+    iblup(test, foo, bar, lmp, ngn, trait, fixed, plan; ε = 1e-6)
 Directional selection with `IBD` relationship matrix for EBV on `foo`.xy and
 `foo`.ped in directory `test` for `ngn` generations. SNP linkage information are
 in DataFrame `lmp`. The results are saved in `bar`.xy, `bar`.ped in directory
@@ -94,19 +94,11 @@ the selection plan `plan`.
 
 See also [`gblup`](@ref), [`ablup`](@ref).
 """
-function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
+function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan; ε = 1e-6)
     @info "  - Directional selection IBLUP for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = nothing
-    if isfile("$test/$foo.irm")
-        G = zeros(size(ped, 1), size(ped, 1))
-        read!("$test/$foo.irm", G)
-    else
-        @info "  - Calculating IBD relationship matrix"
-        G = irm(xy, lmp.chip, 1:size(ped, 1))
-        write("$test/$foo.irm", G)
-    end
+    G = fileIRM("$test/$foo.irm", xy, lmp.chip, 1:size(ped, 1); ε = ε)
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
@@ -117,6 +109,9 @@ function iblup(test, foo, bar, lmp, ngn, trait, fixed, plan)
         ng = Select(ids, plan, ped, trait)
         reproduce!(ng, ped, xy, lmp, trait)
         G = xirm(G, xy, lmp.chip, mid, size(ped, 1))
+        for i = mid+1:size(G, 1)
+            G[i, i] += ε
+        end
     end
     println()
     serialize("$test/$bar.ped", ped)

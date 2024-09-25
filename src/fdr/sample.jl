@@ -5,7 +5,7 @@
 Normalize QTL effect `v`, such that the `Q'v` has mean `μ` and standard deviation
 `σ`.
 """
-function norm_v(Q::AbstractMatrix, v; ϵ=1e-6, μ=0.0, σ=1.0)
+function norm_v(Q::AbstractMatrix, v; ϵ = 1e-6, μ = 0.0, σ = 1.0)
     nqtl = size(Q, 1)
     gv = Q'v
     m, s = mean(gv), std(gv)
@@ -72,11 +72,11 @@ function sample_ts(
     end
     rename!(lmp, dic)
     ped = DataFrame(
-        id=Int32.(1:nid),
-        sire=Int32(0),
-        dam=Int32(0),
-        sex=rand(Int8.(0:1), nid),
-        grt=Int16(1),
+        id = Int32.(1:nid),
+        sire = Int32(0),
+        dam = Int32(0),
+        sex = rand(Int8.(0:1), nid),
+        grt = Int16(1),
     )
     snps = mmap("$tdir/$name.xy", Matrix{Int8}, (size(lmp, 1), 2nid), 24)
     for t in trts
@@ -85,7 +85,7 @@ function sample_ts(
         D = Q .== 1
         a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
         norm_v(Q, a)
-        norm_v(D, d, σ=sqrt(t.vd))
+        norm_v(D, d, σ = sqrt(t.vd))
         lmp[!, "$(t.name)_a"] .= 0.0
         lmp[!, "$(t.name)_d"] .= 0.0
         lmp[!, "$(t.name)_a"][qtl] .= a
@@ -144,7 +144,7 @@ function sample_hps(fxy::T, fmp::T, nid::Int) where {T<:AbstractString}
             ref[ilc], alt[ilc] = alt[ilc], ref[ilc]
         end
     end
-    lmp.frq = vec(mean(sgt, dims=2))
+    lmp.frq = vec(mean(sgt, dims = 2))
     sgt, lmp
 end
 
@@ -202,11 +202,11 @@ function sample_xy(
     sample_loci(lmp, pool, nref, "dark", pot)
 
     ped = DataFrame(
-        id=Int32.(1:nid),
-        sire=Int32(0),
-        dam=Int32(0),
-        sex=shuffle([zeros(Int8, nid ÷ 2); ones(Int8, nid - nid ÷ 2)]),
-        grt=Int16(0),
+        id = Int32.(1:nid),
+        sire = Int32(0),
+        dam = Int32(0),
+        sex = shuffle([zeros(Int8, nid ÷ 2); ones(Int8, nid - nid ÷ 2)]),
+        grt = Int16(0),
     )
 
     for t in trts
@@ -215,7 +215,7 @@ function sample_xy(
         D = Q .== 1
         a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)
         norm_v(Q, a)
-        norm_v(D, d, σ=sqrt(t.vd))
+        norm_v(D, d, σ = sqrt(t.vd))
         lmp[!, "$(t.name)_a"] .= 0.0
         lmp[!, "$(t.name)_d"] .= 0.0
         lmp[!, "$(t.name)_a"][qtl] .= a
@@ -226,7 +226,7 @@ function sample_xy(
     end
     olc = sort(unique(pot))
     open("$tdir/founder.xy", "w") do io
-        hdr = XY.header(major=1)
+        hdr = XY.header(major = 1)
         write(io, Ref(hdr), [length(olc), 2nid])
         write(io, sgt[olc, :])
     end
