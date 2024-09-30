@@ -15,7 +15,7 @@ function fileIRM(
     xy::AbstractString,
     chp::AbstractVector{Bool},
     id::AbstractVector{Int64};
-    ε = 0.0
+    ε = 0.0,
 )
     n = length(id)
     if isfile(file) && filesize(file) == sizeof(Float64) * n * n

@@ -1,1 +1,1 @@
-
+function xybase() end

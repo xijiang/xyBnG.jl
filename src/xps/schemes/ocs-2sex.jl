@@ -89,6 +89,47 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
 end
 
 """
+    riocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
+Optimal contribution selection with `IBD` relationship matrix for both EBV and
+constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
+For constraint, the IRM is from the reference SNP loci. The EBV are estimated
+with IRM from chip SNPs. SNP linkage information are in DataFrame `lmp`. The
+results are saved in `bar`.xy, `bar`.ped in directory `test`. The selection is
+on a single trait `trait` with fixed effects `fixed`, which is a column name
+vector in pedigree DataFrame. Parents are sampled according to `plan`. The
+constraint ΔF is `dF`. `F0` is the inbreeding coefficient of the `foo`
+population.
+
+This function uses the TM1997 algorithm for OCS.
+
+See also [`randbrd`](@ref), [`aaocs`](@ref), [`iidos`](@ref), [`ggocs`](@ref),
+[`agocs`](@ref), [`igocs`](@ref).
+"""
+function riocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
+    @info "  - Directional selection IIOCS for $ngn generations"
+    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
+    cp("$test/$foo.xy", xy, force = true)
+    G = fileIRM("$test/$foo.irm", xy, lmp.dark, 1:size(ped, 1); ε = ε)
+    for ign = 1:ngn
+        print(" $ign")
+        ids = view(ped, ped.grt .== ped.grt[end], :id)
+        phenotype!(ids, ped, trait)
+        giv = inv(G)
+        Predict!(ids, ped, fixed, giv, trait)
+        g22 = G[ids, ids]
+        mid = size(ped, 1)
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
+        reproduce!(ng, ped, xy, lmp, trait)
+        G = xirm(G, xy, lmp.dark, mid, size(ped, 1))
+        for i = mid+1:size(G, 1)
+            G[i, i] += ε
+        end
+    end
+    println()
+    serialize("$test/$bar.ped", ped)
+end
+
+"""
     iidos(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
 Optimal contribution selection with `IBD` relationship matrix for both EBV and
 constraint on `foo`.xy and `foo`.ped in directory `test` for `ngn` generations.
