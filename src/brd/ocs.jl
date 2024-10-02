@@ -62,6 +62,7 @@ function TM2024(ped, A, K)
     DOSop(ped.idx, A, zeros(ncd), 1.0, K, [nsire, ndam], ped.sex .+ 1) / 2.0
 end
 
+#=
 """
     konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
 Calculate the constraint about inbreeding increase in the next generation. Note,
@@ -75,6 +76,7 @@ function konstraint(dF::Float64, k₀::Float64, igrt::Int; ong = false)
         2(1 - (1 - k₀) * (1 - dF)^(igrt + 1))
     end
 end
+=#
 
 """
     OC_fixsex2(EBV, A, K, c2)

@@ -19,6 +19,7 @@ function fileIRM(
 )
     n = length(id)
     if isfile(file) && filesize(file) == sizeof(Float64) * n * n
+        @info "Calculate intial IRM"
         G = zeros(Float64, n, n)
         read!(file, G)
         return G

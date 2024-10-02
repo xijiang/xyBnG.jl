@@ -182,7 +182,7 @@ function Select(
     dat = select(ped[ID, :], "ebv_$(trt.name)" => :idx, :sex)
     rev || (dat.idx .*= -1)
 
-    K = konstraint(dF, F0, igrt)
+    K = 2(1 - (1 - F0) * (1 - dF)^igrt) #konstraint(dF, F0, igrt)
     c = ocs(dat, rs, K)  # this is to select the highest, or equivalently rev = true
     cs = ped.sex[ID] .== 1 # sire candidates
     cd = ped.sex[ID] .== 0 # dam candidates
