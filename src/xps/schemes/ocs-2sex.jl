@@ -68,7 +68,7 @@ function iiocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection IIOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = fileIRM("$test/$foo.irm", xy, lmp.chip, 1:size(ped, 1); ε = ε)
+    G = fileIRM("$test/$bar.irm", xy, lmp.chip, 1:size(ped, 1); ε = ε)
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
@@ -109,7 +109,7 @@ function riocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     @info "  - Directional selection RIOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
-    G = fileIRM("$test/$foo.irm", xy, lmp.dark, 1:size(ped, 1); ε = ε)
+    G = fileIRM("$test/$bar.irm", xy, lmp.dark, 1:size(ped, 1); ε = ε)
     for ign = 1:ngn
         print(" $ign")
         ids = view(ped, ped.grt .== ped.grt[end], :id)
