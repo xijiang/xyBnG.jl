@@ -1,4 +1,3 @@
-
 """
     norm_v(Q::AbstractMatrix, v; ϵ = 1e-6, μ=0., σ=1.)
 
