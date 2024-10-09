@@ -23,7 +23,7 @@ function header(xy::AbstractString)
     sz = filesize(xy)
     sz ≤ 24 && return nothing
     hdr = header()
-    read!(xy, Ref(hdr))
+    read!(xy, hdr)
     (
         hdr.x == Int8('x') &&
         hdr.y == Int8('y') &&
@@ -46,6 +46,6 @@ Update header of file `xy`
 """
 function header!(xy::AbstractString, hdr::header)
     open(xy, "r+") do io
-        write(io, Ref(hdr))
+        write(io, hdr)
     end
 end

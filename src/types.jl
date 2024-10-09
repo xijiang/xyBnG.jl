@@ -287,4 +287,25 @@ function Base.show(io::IO, h::header)
     println(io, "   Element type: $(_type(h.type))")
 end
 
+"""
+    Base.write(io::IO, h::header)
+This is for Julia v1.11+. The write and read! function was not working as
+before.
+"""
+function Base.write(io::IO, h::header)
+    v = [h.x, h.y, h.v, h.flus, h.major, h.type, h.r, h.u]
+    write(io, v)
+end
+
+"""
+    Base.write(io::IO, h::header)
+This is for Julia v1.11+. The write and read! function was not working as
+before.
+"""
+function Base.read!(io::IO, h::header)
+    v = Vector{Int8}(undef, 8)
+    read!(io, v)
+    h.x, h.y, h.v, h.flus, h.major, h.type, h.r, h.u = v
+end
+
 end # module xyTypes
