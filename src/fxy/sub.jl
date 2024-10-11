@@ -9,10 +9,12 @@ function sub(ixy::AbstractString, rows::AbstractVector, cols::AbstractVector)
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     hdr.flus == Int8('F') || error("Needs to be a full matrix.")
     m, n = dim(ixy)
-    (lr, hr) = eltype(rows) == Bool ? (1, length(rows)) : extrema(rows)
-    (lc, hc) = eltype(cols) == Bool ? (1, length(cols)) : extrema(cols)
+    lr, hr = extrema(rows)
+    lc, hc = extrema(cols)
     (lr < 1 || hr > m || lc < 1 || hc > n) && error("row or column index out of range")
-    mat = Mmap.mmap(ixy, Matrix{_type(hdr.type)}, (m, n), 24)
+    mat =
+        hdr.type == 13 ? Mmap.mmap(ixy, BitArray, (m, n), 24) :
+        Mmap.mmap(ixy, Matrix{_type(hdr.type)}, (m, n), 24)
     copy(mat[rows, cols])
 end
 
@@ -36,13 +38,15 @@ function sub(
     isnothing(hdr) && error("$ixy is not a valid xy file.")
     hdr.flus == Int8('F') || error("Needs to be a full matrix.")
     m, n = dim(ixy)
-    (lr, hr) = eltype(rows) == Bool ? (1, length(rows)) : extrema(rows)
-    (lc, hc) = eltype(cols) == Bool ? (1, length(cols)) : extrema(cols)
+    lr, hr = extrema(rows)
+    lc, hc = extrema(cols)
     (lr < 1 || hr > m || lc < 1 || hc > n) && error("row or column index out of range")
     open(oxy, "w") do io
-        write(io, Ref(hdr))
+        write(io, hdr)
         write(io, [length(rows), length(cols)])
-        mat = Mmap.mmap(ixy, Matrix{_type(hdr.type)}, (m, n), 24)
+        mat =
+            hdr.type == 13 ? Mmap.mmap(ixy, BitArray, (m, n), 24) :
+            Mmap.mmap(ixy, Matrix{_type(hdr.type)}, (m, n), 24)
         write(io, mat[rows, cols])
     end
 end

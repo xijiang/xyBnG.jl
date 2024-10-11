@@ -1,7 +1,7 @@
 name = "xyBnG"
 uuid = "056de5cc-3822-4b22-85ae-bc65d3fbfd0e"
 authors = ["Xijiang Yu <xijiang@users.noreply.github.com> and contributors"]
-version = "1.3.3-1"
+version = "1.3.3-2"
 
 [deps]
 CompatHelperLocal = "5224ae11-6099-4aaa-941d-3aab004bd678"
