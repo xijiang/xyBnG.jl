@@ -91,8 +91,8 @@ end
 
 """
     grm(xy::AbstractArray, loci, frq)
-Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at
-`loci` with allele frequencies `frq` of size(gt, 1).
+Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at `loci`
+with allele frequencies `frq` of size(gt, 1).
 """
 function grm(xy::AbstractString, loci, frq)
     hdr = XY.header(xy)
@@ -100,5 +100,20 @@ function grm(xy::AbstractString, loci, frq)
     gt =
         hdr.u == 0 ? hap[loci, 1:2:end] + hap[loci, 2:2:end] :
         isodd.(hap[loci, 1:2:end]) + isodd.(hap[loci, 2:2:end])
+    grm(gt, p = frq[loci])
+end
+
+"""
+    grm(xy::AbstractString, loci, ids, frq)
+Calculate the genomic relationship matrix `GRM` for the genotypes `xy` at `loci`
+with allele frequencies `frq` of size(gt, 1) for the individuals `ids`.
+"""
+function grm(xy::AbstractString, loci, ids, frq)
+    hdr = XY.header(xy)
+    hap = XY.mapit(xy)
+    hs = sort(2ids .- 1; 2ids)
+    gt =
+        hdr.u == 0 ? hap[loci, hs] + hap[loci, hs] :
+        isodd.(hap[loci, hs]) + isodd.(hap[loci, hs])
     grm(gt, p = frq[loci])
 end
