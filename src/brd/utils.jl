@@ -38,12 +38,12 @@ whole genome.
 
 The first number is `1`, or `2`, the starting alternative haplotype. The vector
 is then start from locus `1`, and loci that cross-over happens.  A
-``cross-over`` may also happen at the first locus of a chromsome. Otherwise, the
+``crossover`` may also happen at the first locus of a chromsome. Otherwise, the
 segment continues with the previous haplotype.  This eases the segment copy.  At
-the beginning of a ``cross-over`` happens on `rand([1:2])`.  The number of
+the beginning of a ``crossover`` happens on `rand([1:2])`.  The number of
 cross-over occurred on a chromosome follows a Poisson distribution.
 
-The cross-over location is then sampled from a uniform distribution. It can can
+The crossover location is then sampled from a uniform distribution. It can can
 also be U-shaped about the centromere, which might be implemented later.
 
 The chromosome, or linkage group, should be in the order of the genotype file.
