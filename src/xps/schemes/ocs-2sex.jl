@@ -351,6 +351,8 @@ function hhocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
+    println()
+    serialize("$test/$bar.ped", ped)
 end
 
 """
@@ -386,4 +388,6 @@ function hgocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
+    println()
+    serialize("$test/$bar.ped", ped)
 end
