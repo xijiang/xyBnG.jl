@@ -37,5 +37,6 @@ include("xps/dosblup.jl")
 include("xps/o3cs.jl")
 include("xps/oc-sires.jl")
 include("xps/mini.jl")
+include("xps/test-scheme.jl")
 
 end # module xps

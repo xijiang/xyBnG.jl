@@ -111,9 +111,10 @@ with allele frequencies `frq` of size(gt, 1) for the individuals `ids`.
 function grm(xy::AbstractString, loci, ids, frq)
     hdr = XY.header(xy)
     hap = XY.mapit(xy)
-    hs = sort([2ids .- 1; 2ids])
+    od = 2ids .- 1
+    ev = 2ids
     gt =
-        hdr.u == 0 ? hap[loci, hs] + hap[loci, hs] :
-        isodd.(hap[loci, hs]) + isodd.(hap[loci, hs])
+        hdr.u == 0 ? hap[loci, od] + hap[loci, ev] :
+        isodd.(hap[loci, od]) + isodd.(hap[loci, ev])
     grm(gt, p = frq[loci])
 end

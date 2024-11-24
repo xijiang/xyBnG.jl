@@ -336,7 +336,7 @@ See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
 [`ggocs`](@ref), [`agocs`](@ref).
 """
 function hhocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
-    @info "  - Directional selection HGOCS for $ngn generations"
+    @info "  - Directional selection HHOCS for $ngn generations"
     ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
     cp("$test/$foo.xy", xy, force = true)
     frq = ones(size(lmp, 1)) * 0.5
@@ -382,7 +382,7 @@ function hgocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         mid = size(ped, 1)
-        g22 = grm(xy, lmp.chip, mid+1-length(ids):mid) + ε * I
+        g22 = grm(xy, lmp.chip, mid+1-length(ids):mid, frq) + ε * I
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
