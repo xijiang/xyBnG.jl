@@ -45,10 +45,15 @@ number and scheme are to be stored in the result DataFrame.
 - `genicv`: genic variance
 - `floor`: floor of the population, i.e., the lowest mean TBV
 - `ceiling`: ceiling of the population
-- `covdq`: covariance between q₀ and qₜ
-- `covdq2`: covariance between q₀ corrected and qₜ
-- `fhet`: inbreeding by homozygosity
-- `fdrift`: inbreeding by drift
+- `covdq1`: covariance between q₀ and qₜ, dark, method 1
+- `covdq2`: covariance between q₀ corrected and qₜ, dark method 2
+- `covdq3`: covariance between q₀ corrected and qₜ, chip method 2
+- `fhet1`: inbreeding by homozygosity, dark, method 1
+- `fhet2`: inbreeding by homozygosity, dark, method 2
+- `fhet3`: inbreeding by homozygosity, chip, method 2
+- `fdrift1`: inbreeding by drift, dark, method 1
+- `fdrift2`: inbreeding by drift, dark, method 2
+- `fdrift3`: inbreeding by drift, chip, method 2
 """
 function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     haps = XY.mapit(xy)
@@ -104,37 +109,52 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     end
     insertcols!(ss, :xqtl => xqtl, :xchip => xchip, :xref => xref, :xfq => xfq, :xuq => xuq)
     insertcols!(ss, :genicv => vgn, :floor => flr, :ceiling => clg)
-    covdq = zeros(ng)      # covariance between q₀ and qᵢ
-    covdq2 = zeros(ng)     # covariance between q₀ corrected and qᵢ
-    fhet = zeros(ng)       # Inbreeding by heterozygosity
-    fhet2 = zeros(ng)      # Inbreeding by heterozygosity
-    fdrift = zeros(ng)     # Inbreeding by drift
-    fdrift2 = zeros(ng)    # Inbreeding by drift
+    covdq1 = zeros(ng)     # covariance between q₀ and qᵢ
+    covdq2 = zeros(ng)     # covariance between q₀ corrected and qᵢ, dark
+    covdq3 = zeros(ng)     # covariance between q₀ corrected and qᵢ, chip
+    fhet1 = zeros(ng)      # Inbreeding by homozygosity
+    fhet2 = zeros(ng)      # Inbreeding by homozygosity, dark SNP
+    fhet3 = zeros(ng)      # Inbreeding by homozygosity, chip SNP
+    fdrift1 = zeros(ng)    # Inbreeding by drift
+    fdrift2 = zeros(ng)    # Inbreeding by drift, dark SNP
+    fdrift3 = zeros(ng)    # Inbreeding by drift, chip SNP
 
-    q0 = q[:, 1]
-    H0, H0d = snphet(q0), dsnphet(q0)
-    loci = lmp.dark .&& 0 .< frq[:, 1] .< 2ss.nid[1]
-    factor = sqrt.(q0[loci] .* (1 .- q0[loci]))
-    qa = q0[loci] ./ factor
-    qb = (q0[loci] .- 0.5) ./ factor
+    q₀ = q[:, 1]
+
+    dark = lmp.dark .&& 0 .< frq[:, 1] .< 2ss.nid[1]
+    chip = lmp.chip .&& 0 .< frq[:, 1] .< 2ss.nid[1]
+    H₀, H₀v = snphet(q₀[dark]), v_snphet(q₀)
+    d_dark = sqrt.(q₀[dark] .* (1 .- q₀[dark]))
+    d_chip = sqrt.(q₀[chip] .* (1 .- q₀[chip]))
+    q₁ = q₀[dark] ./ d_dark
+    q₂₁ = (q₀[dark] .- 0.5) ./ d_dark
+    q₂₂ = (q₀[chip] .- 0.5) ./ d_chip
+    q₃ = (q₀[chip] .- 0.5) ./ d_chip
     for i = 1:ng
-        δq = (q[loci, i] .- q0[loci]) ./ factor
-        covdq[i] = cov(δq, qa)
-        covdq2[i] = cov(δq, qb)
-        Ht, Htd = snphet(q[:, i]), dsnphet(q[:, i])
-        fhet[i] = (H0 - Ht) / H0
-        fhet2[i] = mean((H0d - Htd) ./ H0d)
-        fdrift[i] = 2var(q[:, i] - q0) / H0
-        fdrift2[i] = mean(2(q[:, i] - q0) .^ 2 ./ H0d)
+        δq = (q[dark, i] .- q₀[dark]) ./ d_dark
+        covdq1[i] = cov(δq, q₁)
+        covdq2[i] = cov(δq, q₂₁)
+        δq = (q[chip, i] .- q₀[chip]) ./ d_chip
+        covdq3[i] = cov(δq, q₂₂)
+        Ht, Htᵥ = snphet(q[dark, i]), v_snphet(q[:, i])
+        fhet1[i] = (H₀ - Ht) / H₀
+        fhet2[i] = mean((H₀v[dark] - Htᵥ[dark]) ./ H₀v[dark])
+        fhet3[i] = mean((H₀v[chip] - Htᵥ[chip]) ./ H₀v[chip])
+        fdrift1[i] = 2var(q[dark, i] - q₀[dark]) / H₀
+        fdrift2[i] = mean(2(q[dark, i] - q₀[dark]) .^ 2 ./ H₀v[dark])
+        fdrift3[i] = mean(2(q[chip, i] - q₀[chip]) .^ 2 ./ H₀v[chip])
     end
     insertcols!(
         ss,
-        :covdq => covdq,
+        :covdq1 => covdq1,
         :covdq2 => covdq2,
-        :fhet => fhet,
+        :covdq3 => covdq3,
+        :fhet1 => fhet1,
         :fhet2 => fhet2,
-        :fdrift => fdrift,
+        :fhet3 => fhet3,
+        :fdrift1 => fdrift1,
         :fdrift2 => fdrift2,
+        :fdrift3 => fdrift3,
     )
     ss
 end

@@ -4,7 +4,7 @@ This function is to run a very small example of the package `xyBnG`. It is
 for my laptop to run in a reasonable time.
 """
 function tstScheme(test, scheme)
-    foo, bar = "mini-rand", string(scheme)
+    foo, bar = "mini-rand", "01-" * string(scheme)
     @info "Test scheme: $bar"
     lmp = deserialize("$test/mini-founder.lmp")
     trait = Trait("growth", 0.25, 1_000)
@@ -22,6 +22,8 @@ function tstScheme(test, scheme)
     else
         error("Scheme $scheme is not defined.")
     end
+    rst = Sum.xysum("$test/$bar.ped", "$test/$bar.xy", lmp, trait)
+    Sum.savesum("$test/summary.ser", rst)
 end
 
 """
