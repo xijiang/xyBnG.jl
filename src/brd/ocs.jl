@@ -25,6 +25,7 @@ function TM1997(ped, A, K)
     nid, itr = nrow(ped), 0
     size(A, 1) == nid || error("A and ped do not match")
     id = 1:nid
+    rc = zeros(nid)
 
     while true
         itr += 1
@@ -35,19 +36,23 @@ function TM1997(ped, A, K)
         QAQi = inv(QAQ)
         f1 = u' * (Ai - Ai * Q * QAQi * Q'Ai) * u # numerator
         f2 = 4K - sum(QAQi) # denominator
-        f2 ≤ 0 && return 0.5Ai * Q * QAQi * ones(2) # can't meet the constraint
+        if f2 ≤ 0
+            rc[id] = 0.5Ai * Q * QAQi * ones(2) # can't meet the constraint
+            @warn "Cannot achieve constraint $K"
+            break
+        end
         f1 = max(f1, 1e-10)
         λ₀ = sqrt(f1 / f2)
         λ = QAQi * (Q'Ai * u .- λ₀)
         c = Ai * (u - Q * λ) / (2λ₀)
         ix = findall(c .> 0) # indices of ID of next round
         if length(ix) == length(id)
-            rc = zeros(nid)
             rc[id] = c
-            return rc
+            break
         end
         id = id[ix]
     end
+    return rc
 end
 
 """
