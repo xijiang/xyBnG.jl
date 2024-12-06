@@ -174,7 +174,17 @@ function sample_loci(
 end
 
 """
-    sample_xy(fxy::AbstractString, fmp::AbstractString, tdir::AbstractString, nid::Int, maf::Float64, nchp::Int, nref::Int, trts::Trait...)
+    sample_xy(
+        fxy::AbstractString,
+        fmp::AbstractString,
+        tdir::AbstractString,
+        nid::Int,
+        maf::Float64,
+        nchp::Int,
+        nref::Int,
+        trts::Trait...;
+        replace::Bool = false,
+    )
 Sample a founder from a SNP file `fxy` and a linkage map `fmp` into `tdir`. The
 founder has `nid` ID, `maf` (exclusive) minor allele frequency, `nchp` chip SNP,
 `nref` reference loci, and `trts` traits.
@@ -190,15 +200,23 @@ function sample_xy(
     maf::Float64,
     nchp::Int,
     nref::Int,
-    trts::Trait...,
+    trts::Trait...;
+    replace::Bool = false,
 )
     0.0 ≤ maf ≤ 0.5 || error("Minor allele frequency out of range")
     sgt, lmp = sample_hps(fxy, fmp, nid)
-    pool = findall((lmp.frq .> maf) .&& (lmp.frq .< 1.0 - maf))
-    pot = Int[]
+    alc = 1:size(lmp, 1) # all loci
+    pool = maf .< lmp.frq .< 1.0 - maf # loci to sample
+    pot = Int[]          # selected loci
     @info "  - Sampling SNP"
-    sample_loci(lmp, pool, nchp, "chip", pot)
-    sample_loci(lmp, pool, nref, "dark", pot)
+    sample_loci(lmp, alc[pool], nchp, "chip", pot)
+    if !replace 
+        pool = pool .&& .!lmp.chip
+    end
+    sample_loci(lmp, alc[pool], nref, "dark", pot)
+    if !replace
+        pool = pool .&& .!lmp.dark
+    end
 
     ped = DataFrame(
         id = Int32.(1:nid),
@@ -209,7 +227,10 @@ function sample_xy(
     )
 
     for t in trts
-        qtl = sample_loci(lmp, pool, t.nQTL, t.name, pot)
+        qtl = sample_loci(lmp, alc[pool], t.nQTL, t.name, pot)
+        if !replace
+            pool = pool .&& .!lmp[!, t.name]
+        end
         Q = sgt[qtl, 1:2:end] + sgt[qtl, 2:2:end]
         D = Q .== 1
         a, d = rand(t.da, t.nQTL), rand(t.dd, t.nQTL)

@@ -22,13 +22,11 @@ The function returns a vector of coefficients for the contribution of each ID.
 function TM1997(ped, A, K)
     ["idx", "sex"] ⊆ names(ped) || error("Not a proper pedigree")
     issymmetric(A) || error("A is not symmetric")
-    nid, itr = nrow(ped), 0
+    nid = nrow(ped)
     size(A, 1) == nid || error("A and ped do not match")
-    id = 1:nid
-    rc = zeros(nid)
+    id, rc = 1:nid, zeros(nid)
 
     while true
-        itr += 1
         u = ped.idx[id]
         Q = [ped.sex[id] .== 1 ped.sex[id] .== 0]
         Ai = inv(A[id, id])
@@ -39,7 +37,7 @@ function TM1997(ped, A, K)
         if f2 ≤ 0
             rc[id] = 0.5Ai * Q * QAQi * ones(2) # can't meet the constraint
             @warn "Cannot achieve constraint $K"
-            break
+            return rc
         end
         f1 = max(f1, 1e-10)
         λ₀ = sqrt(f1 / f2)
@@ -48,11 +46,10 @@ function TM1997(ped, A, K)
         ix = findall(c .> 0) # indices of ID of next round
         if length(ix) == length(id)
             rc[id] = c
-            break
+            return rc
         end
         id = id[ix]
     end
-    return rc
 end
 
 """
