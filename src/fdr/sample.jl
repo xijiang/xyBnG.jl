@@ -246,7 +246,7 @@ function sample_xy(
     end
     olc = sort(unique(pot))
     open("$tdir/founder.xy", "w") do io
-        hdr = XY.header(major = 1)
+        hdr = XY.header(fxy)
         write(io, Ref(hdr), [length(olc), 2nid])
         write(io, sgt[olc, :])
     end
