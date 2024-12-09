@@ -20,12 +20,12 @@ import StatsBase: sample, Weights
 using xyBnG.XY
 using xyBnG.xyTypes: Trait, Cattle, Species, Plan, name
 
-include("brd/utils.jl")
-include("brd/phenotype.jl")
-include("brd/predict.jl")
-include("brd/select.jl")
-include("brd/reproduce.jl")
-include("brd/ocs.jl")
-include("brd/xecodes.jl")
+include("utils.jl")
+include("phenotype.jl")
+include("predict.jl")
+include("select.jl")
+include("reproduce.jl")
+include("ocs.jl")
+include("xecodes.jl")
 
 end # module Breeding

@@ -23,20 +23,20 @@ import xyBnG.Founder: ts_base, uniq, sample_xy, macs_base
 import xyBnG.RS: nrm, irm, grm, xirm
 
 # Schemes
-include("xps/schemes/cull.jl")
-include("xps/schemes/ocs-2sex.jl")
-include("xps/schemes/ocs-male.jl")
-include("xps/schemes/file-irm.jl")
+include("schemes/cull.jl")
+include("schemes/ocs-2sex.jl")
+include("schemes/ocs-male.jl")
+include("schemes/file-irm.jl")
 
 # Examples
-include("xps/chkbase.jl")
-include("xps/init.jl")
-include("xps/a-tale-of-selction.jl")
-include("xps/one-trait.jl")
-include("xps/dosblup.jl")
-include("xps/o3cs.jl")
-include("xps/oc-sires.jl")
-include("xps/mini.jl")
-include("xps/test-scheme.jl")
+include("chkbase.jl")
+include("init.jl")
+include("a-tale-of-selction.jl")
+include("one-trait.jl")
+include("dosblup.jl")
+include("o3cs.jl")
+include("oc-sires.jl")
+include("mini.jl")
+include("test-scheme.jl")
 
 end # module xps

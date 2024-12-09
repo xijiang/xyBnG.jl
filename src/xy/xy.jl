@@ -26,19 +26,19 @@ using Mmap
 using Serialization
 import xyBnG.xyTypes: header, _type, _nvldtype
 
-include("fxy/header.jl")
-include("fxy/dim.jl")
-include("fxy/init-xy.jl")
-include("fxy/extract-chr.jl")
-include("fxy/map-it.jl")
-include("fxy/recognize.jl")
-include("fxy/transpose-n-code-byte-2-bit.jl")
-include("fxy/transpose.jl")
-include("fxy/uniq-code.jl")
-include("fxy/snp2gt.jl")
-include("fxy/merge.jl")
-include("fxy/sub.jl")
-include("fxy/xy2matrix.jl")
-include("fxy/append.jl")
+include("header.jl")
+include("dim.jl")
+include("init-xy.jl")
+include("extract-chr.jl")
+include("map-it.jl")
+include("recognize.jl")
+include("transpose-n-code-byte-2-bit.jl")
+include("transpose.jl")
+include("uniq-code.jl")
+include("snp2gt.jl")
+include("merge.jl")
+include("sub.jl")
+include("xy2matrix.jl")
+include("append.jl")
 
 end # module XY

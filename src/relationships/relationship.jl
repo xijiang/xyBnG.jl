@@ -7,9 +7,9 @@ using Statistics
 using xyBnG.XY
 import xyBnG.Util: memavail
 
-include("rs/grm.jl")
-include("rs/irm.jl")
-include("rs/nrm.jl")
-include("rs/phasedibd.jl")
+include("grm.jl")
+include("irm.jl")
+include("nrm.jl")
+include("phasedibd.jl")
 
 end # module RS

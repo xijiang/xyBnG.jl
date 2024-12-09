@@ -10,8 +10,8 @@ using xyBnG.Conn.TS
 using xyBnG.XY
 import xyBnG.xyTypes: Cattle, Species, Trait
 
-include("fdr/xybase.jl")
-include("fdr/extern.jl")
-include("fdr/sample.jl")
+include("xybase.jl")
+include("extern.jl")
+include("sample.jl")
 
 end # module Founder

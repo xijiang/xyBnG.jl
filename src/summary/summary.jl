@@ -15,14 +15,14 @@ using xyBnG.XY
 using xyBnG.RS
 import xyBnG.xyTypes: Cattle, Species, Trait, Plan, name
 
-include("sum/savepar.jl")
-include("sum/tibd.jl")
-include("sum/ffcv.jl")
-include("sum/xysum.jl")
-include("sum/savesum.jl")
-include("sum/cormat.jl")
-include("sum/snphet.jl")
-include("sum/fgrm.jl")
-include("sum/resum.jl")
+include("savepar.jl")
+include("tibd.jl")
+include("ffcv.jl")
+include("xysum.jl")
+include("savesum.jl")
+include("cormat.jl")
+include("snphet.jl")
+include("fgrm.jl")
+include("resum.jl")
 
 end # module Sum
