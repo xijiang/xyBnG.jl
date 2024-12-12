@@ -10,6 +10,7 @@ using xyBnG.Conn.TS
 using xyBnG.XY
 import xyBnG.xyTypes: Cattle, Species, Trait
 
+include("fwdsim.jl")
 include("xybase.jl")
 include("extern.jl")
 include("sample.jl")

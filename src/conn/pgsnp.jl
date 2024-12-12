@@ -6,7 +6,7 @@ module PG
 using DataFrames
 using Serialization
 using xyBnG.XY
-function toxy(dir::AbstractString; keep = false)
+function toxy(dir::AbstractString; keep = false, flip = true)
     isdir(dir) || error("$dir not exists")
     @info "  - Collect genotypes simulated by `pgsnp` in $dir"
     fname = readline("$dir/desc.txt")
@@ -23,18 +23,21 @@ function toxy(dir::AbstractString; keep = false)
     for c in chrs
         push!(fs, open(joinpath(dir, "chr.$c"), "r"))
     end
-    nid, tlc = 0, 0
+    nid, tlc, fx = 0, 0, []
     for f in fs
         nid = parse(Int, readline(f))
         ilc = parse(Int, readline(f))
         tlc += ilc
+        push!(fx, rand(Bool, ilc))
     end
     open(fxy, "w") do io
         write(io, Ref(hdr), [tlc, 2nid])
         for ihp = 1:2nid
-            for f in fs
+            for (i, f) in enumerate(fs)
                 line = readline(f)
-                write(io, Int8.(collect(line) .- '0'))
+                hap = Int8.(collect(line) .- '0')
+                flip && (hap[fx[i]] .= 1 .- hap[fx[i]])
+                write(io, hap)
             end
         end
     end
