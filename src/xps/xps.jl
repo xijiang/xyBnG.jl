@@ -38,5 +38,6 @@ include("o3cs.jl")
 include("oc-sires.jl")
 include("mini.jl")
 include("test-scheme.jl")
+include("f0.jl")
 
 end # module xps
