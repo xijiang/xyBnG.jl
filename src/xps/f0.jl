@@ -30,6 +30,19 @@ function F0H(xy, lmp, ped)
 end
 
 """
+    F0H2(xy, lmp, ped)
+Empirical inbreeding coefficient of the last generation of pedigree `ped` based
+on the genomic relationship matrix with q0 .= 0.5 and with chip loci.
+"""
+function F0H2(xy, lmp, ped)
+    hap = Int8.(isodd.(XY.mapit(xy)))
+    id = ped.id[ped.grt .== ped.grt[end]]
+    gt = hap[lmp.chip, 2id .- 1] + hap[lmp.chip, 2id]
+    H = grm(gt, p = ones(size(gt, 1)) * 0.5)
+    mean(H)/2
+end
+
+"""
     F0G(xy, lmp, ped)
 Empirical inbreeding coefficient of the last generation of pedigree `ped` based
 on the genomic relationship matrix with chip loci.
