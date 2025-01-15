@@ -10,6 +10,7 @@ module vcf
 using DataFrames
 using GZip
 using Mmap
+using Serialization
 using Statistics
 import xyBnG.Util: commas
 using xyBnG.XY
@@ -38,8 +39,22 @@ function toxy(V::IO, X::AbstractString)
     
     nlc = sum(vld)
     hap = BitArray(undef, nlc, 2nid)
+    lmp = DataFrame(
+        chr = Int8[],
+        pos = Int32[],
+        ref = Char[],
+        alt = Char[],
+        frq = Float64[],
+    )
     seekstart(V)
-    open(X, "w") do oo
+    oxy, omp = begin
+        if length(X) > 3 && lowercase(X[end-2:end]) == ".xy"
+            "$X", "$(X[1:end-3]).lmp"
+        else
+            "$X.xy", "$X.lmp"
+        end
+    end
+    open(oxy, "w") do oo
         write(oo, Ref(XY.header(r = 1)), [nlc, 2nid])
         iln = ilc = 0
         for line in eachline(V)
@@ -47,34 +62,47 @@ function toxy(V::IO, X::AbstractString)
             vld[iln] || continue
             ilc += 1
             p = 1
-            for _ in 1:9
+            for _ in 1:5
                 p = findnext('\t', line, p) + 1
             end
-            alt = rand("01") # randomly flip the allele names
-            #alt = '1' # to test if read rightly.
+            chr, pos, _, ref, alt = split(line[1:p-1])
+            push!(lmp, (parse(Int8, chr), parse(Int32, pos), ref[1], alt[1], 0.5))
+            Alt = rand("01") # randomly flip the allele names
+            #Alt = '1' # to test if read rightly.
             for j in 1:nid
-                hap[ilc, 2j-1] = (line[p] == alt)
+                hap[ilc, 2j-1] = (line[p] == Alt)
                 p += 2
-                hap[ilc, 2j] = (line[p] == alt)
+                hap[ilc, 2j] = (line[p] == Alt)
                 p += 2
             end
         end
         write(oo, hap)
+        lmp.frq = vec(mean(hap, dims = 2))
+        serialize(omp, lmp)
     end
-    close(V)
-    hap
 end
 
 function toxy(V::AbstractString, X::AbstractString)
-    if V[end-6:end] == ".vcf.gz"
+    if lowercase(V[end-3:end]) == ".vcf"
+        open(V, "r") do ii
+            toxy(ii, X)
+        end
+    elseif length(V) > 7 && lowercase(V[end-6:end]) == ".vcf.gz"
         GZip.open(V, "r") do ii
             toxy(ii, X)
         end
     else
-        open(V, "r") do ii
-            toxy(ii, X)
-        end
+        error("Unknown file type: $V")
     end
+end
+
+function toxy(V::AbstractString)
+    p = findlast(".vcf", lowercase(V))
+    if isnothing(p)
+        error("Unknown file type: $V")
+    end
+    p = p[1] - 1
+    toxy(V, V[1:p])
 end
 
 #=
