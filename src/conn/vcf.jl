@@ -8,11 +8,76 @@ have complicated VCF files, at least at the moment.
 module vcf
 
 using DataFrames
+using GZip
 using Mmap
 using Statistics
 import xyBnG.Util: commas
 using xyBnG.XY
 
+function toxy(V::IO, X::AbstractString)
+    @info "Counting valid loci and individuals in $V"
+    nid = 0
+    vld = Bool[]
+    for line in eachline(V)
+        if line[2] == '#'
+            push!(vld, false)
+            continue
+        end
+        if line[1] == '#' # split is expensive, so we do it only once
+            nid = length(split(line)) - 9
+            push!(vld, false)
+            continue
+        end
+        m = 1
+        for _ in 1:4
+            m = findnext('\t', line, m) + 1
+        end
+        n = findnext('\t', line, m)
+        push!(vld, n - m == 1)
+    end
+    
+    nlc = sum(vld)
+    hap = BitArray(undef, nlc, 2nid)
+    seekstart(V)
+    open(X, "w") do oo
+        write(oo, Ref(XY.header(r = 1)), [nlc, 2nid])
+        iln = ilc = 0
+        for line in eachline(V)
+            iln += 1
+            vld[iln] || continue
+            ilc += 1
+            p = 1
+            for _ in 1:9
+                p = findnext('\t', line, p) + 1
+            end
+            alt = rand("01") # randomly flip the allele names
+            #alt = '1' # to test if read rightly.
+            for j in 1:nid
+                hap[ilc, 2j-1] = (line[p] == alt)
+                p += 2
+                hap[ilc, 2j] = (line[p] == alt)
+                p += 2
+            end
+        end
+        write(oo, hap)
+    end
+    close(V)
+    hap
+end
+
+function toxy(V::AbstractString, X::AbstractString)
+    if V[end-6:end] == ".vcf.gz"
+        GZip.open(V, "r") do ii
+            toxy(ii, X)
+        end
+    else
+        open(V, "r") do ii
+            toxy(ii, X)
+        end
+    end
+end
+
+#=
 """
     dim(vcf::AbstractString)
 Find the dimensions of a VCF file. Returns the number of loci and the number of
@@ -102,12 +167,12 @@ function toxy(vcf::AbstractString, sxy::AbstractString; nln = 10000)
     nlc, nid = dim(vcf)
     hdr = XY.header(major = 1)
     lmp = DataFrame(
-        chr = zeros(Int8, nlc),
-        pos = zeros(Int32, nlc),
-        ref = 'a',
-        alt = 't',
-        frq = 0.0,
-    ) # map
+        chr = Int8[],
+        pos = Int32[],
+        ref = Char[],
+        alt = Char[],
+        frq = Float64[],
+    )
     write(sxy * ".xy", Ref(hdr), [2nid, nlc])
 
     # Create blocks for parallel processing
@@ -207,5 +272,6 @@ function z2xy(zvcf::AbstractString, xy::AbstractString; nln = 10000)
         serialize("$xy-map.ser", mmp)
     end
 end
+=#
 
 end # module VCF
