@@ -83,7 +83,7 @@ function toxy(V::IO, X::AbstractString)
 end
 
 function toxy(V::AbstractString, X::AbstractString)
-    if lowercase(V[end-3:end]) == ".vcf"
+    if length(V) > 4 && lowercase(V[end-3:end]) == ".vcf"
         open(V, "r") do ii
             toxy(ii, X)
         end
