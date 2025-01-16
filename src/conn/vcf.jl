@@ -66,9 +66,10 @@ function toxy(V::IO, X::AbstractString)
                 p = findnext('\t', line, p) + 1
             end
             chr, pos, _, ref, alt = split(line[1:p-1])
-            push!(lmp, (parse(Int8, chr), parse(Int32, pos), ref[1], alt[1], 0.5))
             Alt = rand("01") # randomly flip the allele names
-            #Alt = '1' # to test if read rightly.
+            Alt == '0' && ((ref, alt) = (alt, ref))
+            push!(lmp, (parse(Int8, chr), parse(Int32, pos), ref[1], alt[1], 0.5))
+            #Alt = '1' # to test if read rightfully.
             for j in 1:nid
                 hap[ilc, 2j-1] = (line[p] == Alt)
                 p += 2
