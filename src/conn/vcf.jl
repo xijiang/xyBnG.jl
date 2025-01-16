@@ -55,7 +55,7 @@ function toxy(V::IO, X::AbstractString)
         end
     end
     open(oxy, "w") do oo
-        write(oo, Ref(XY.header(r = 1)), [nlc, 2nid])
+        write(oo, Ref(XY.header(type = 13)), [nlc, 2nid])
         iln = ilc = 0
         for line in eachline(V)
             iln += 1
@@ -76,6 +76,7 @@ function toxy(V::IO, X::AbstractString)
                 hap[ilc, 2j] = (line[p] == Alt)
                 p += 2
             end
+            ilc % 10_000 == 0 && print("\r\tProcessed loci: $(commas(ilc)) / $(commas(nlc))")
         end
         write(oo, hap)
         lmp.frq = vec(mean(hap, dims = 2))
