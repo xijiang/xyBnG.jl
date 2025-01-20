@@ -8,16 +8,17 @@ pedigree `ped`.
 """
 function F0A(ped)
     A = nrm(ped)
-    mean(diag(A)[ped.grt .== ped.grt[end]]) - 1
+    #mean(diag(A)[ped.grt .== ped.grt[end]]) - 1
+    mean(A) / 2
 end
 
 """
-    F0H(xy, lmp, ped)
+    F0H2(xy, lmp, ped)
 Empirical inbreeding coefficient of the last generation of pedigree `ped` based
 on the heterozygosity differences between the first and last generation of chip
 loci.
 """
-function F0H(xy, lmp, ped)
+function F0H2(xy, lmp, ped)
     hap = Int8.(isodd.(XY.mapit(xy)))
     fg = repeat(ped.grt .== ped.grt[begin], inner = 2)
     f0 = vec(mean(hap[lmp.chip, fg], dims = 2))
@@ -30,16 +31,16 @@ function F0H(xy, lmp, ped)
 end
 
 """
-    F0H2(xy, lmp, ped)
+    F0H(xy, lmp, ped)
 Empirical inbreeding coefficient of the last generation of pedigree `ped` based
 on the genomic relationship matrix with q0 .= 0.5 and with chip loci.
 """
-function F0H2(xy, lmp, ped)
+function F0H(xy, lmp, ped)
     hap = Int8.(isodd.(XY.mapit(xy)))
     id = ped.id[ped.grt .== ped.grt[end]]
     gt = hap[lmp.chip, 2id .- 1] + hap[lmp.chip, 2id]
     H = grm(gt, p = ones(size(gt, 1)) * 0.5)
-    mean(H)/2
+    mean(H) / 2
 end
 
 """
@@ -52,7 +53,8 @@ function F0G(xy, lmp, ped)
     gt = hap[lmp.chip, 1:2:end] + hap[lmp.chip, 2:2:end]
     frq = mean(gt[:, ped.grt .== ped.grt[begin]], dims = 2) / 2
     G = grm(gt; p = vec(frq))
-    mean(diag(G)[ped.grt .== ped.grt[end]]) - 1
+    #mean(diag(G)[ped.grt .== ped.grt[end]]) - 1
+    mean(G) / 2
 end
 
 """
@@ -64,5 +66,6 @@ function F0I(xy, lmp, ped)
     lg = repeat(ped.grt .== ped.grt[end], inner = 2)
     hap = XY.mapit(xy)
     lhp = hap[lmp.chip, lg]
-    mean(diag(irm(lhp))) - 1
+    #mean(diag(irm(lhp))) - 1
+    mean(irm(lhp)) / 2
 end
