@@ -9,7 +9,8 @@ pedigree `ped`.
 function F0A(ped)
     A = nrm(ped)
     #mean(diag(A)[ped.grt .== ped.grt[end]]) - 1
-    mean(A) / 2
+    lg = ped.grt .== ped.grt[end]
+    mean(A[lg, lg]) / 2
 end
 
 """
