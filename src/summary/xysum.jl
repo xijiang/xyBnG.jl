@@ -74,8 +74,6 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
         "tbv_" * trt => var => :vtbv, # genetic variance
         "ebv_" * trt => mean => :mebv,
         ["tbv_" * trt, "ebv_" * trt] => cor => :rtbv,
-        #:iF => mean => :fibd,
-        #:aF => mean => :fped,
     )
     # Mean relationship using A matrix
     grt = sort(unique(ped.grt))
@@ -88,14 +86,19 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     # Mean relationship using IBD
     hg = repeat(ped.grt, inner = 2)
     iF = Float64[]
+    iF2 = Float64[]
     for i in grt
         rg = hg .== i
-        T = RS.irm(view(haps, lmp.chip, rg))
         n = sum(rg)
+        T = RS.irm(view(haps, lmp.chip, rg))
         tif = (sum(T) - sum(diag(T))) / n / (n - 1)
         push!(iF, tif)
+        T = RS.irm(view(haps, lmp.dark, rg))
+        tif = (sum(T) - sum(diag(T))) / n / (n - 1)
+        push!(iF2, tif)
     end
     ss.iF = iF
+    ss.iF2 = iF2
     insertcols!(ss, 1, :repeat => rpt, :scheme => scheme)
     # Mean IBD relationship
 
