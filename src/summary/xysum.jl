@@ -90,7 +90,7 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     iF = Float64[]
     for i in grt
         rg = hg .== i
-        T = irm(view(haps, lmp.chip, rg))
+        T = RS.irm(view(haps, lmp.chip, rg))
         n = sum(rg)
         tif = (sum(T) - sum(diag(T))) / n / (n - 1)
         push!(iF, tif)
