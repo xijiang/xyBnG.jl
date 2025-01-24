@@ -2,6 +2,16 @@
 # 1996, pp. 67. It is unfair for G, I and H matrices.
 
 """
+    function meanoffd(a)
+Possible the fastest way to calculate the mean off-diagonals of a square matrix.
+"""
+function meanoffd(a)
+    m, n = size(a)
+    m == n || error("Not square")
+    (sum(a) - sum(diag(a))) / (n * (n - 1))
+end
+
+"""
     F0A(ped)
 Empirical pedigree based inbreeding coefficient of the last generation of
 pedigree `ped`.
@@ -10,7 +20,8 @@ function F0A(ped)
     A = nrm(ped)
     #mean(diag(A)[ped.grt .== ped.grt[end]]) - 1
     lg = ped.grt .== ped.grt[end]
-    mean(A[lg, lg]) / 2
+    T = view(A, lg, lg)
+    meanoffd(T)
 end
 
 """
@@ -41,7 +52,7 @@ function F0H(xy, lmp, ped)
     id = ped.id[ped.grt .== ped.grt[end]]
     gt = hap[lmp.chip, 2id .- 1] + hap[lmp.chip, 2id]
     H = grm(gt, p = ones(size(gt, 1)) * 0.5)
-    mean(H) / 2
+    meanoffd(H)
 end
 
 """
@@ -54,8 +65,7 @@ function F0G(xy, lmp, ped)
     gt = hap[lmp.chip, 1:2:end] + hap[lmp.chip, 2:2:end]
     frq = mean(gt[:, ped.grt .== ped.grt[begin]], dims = 2) / 2
     G = grm(gt; p = vec(frq))
-    #mean(diag(G)[ped.grt .== ped.grt[end]]) - 1
-    mean(G) / 2
+    meanoffd(G)
 end
 
 """
@@ -66,7 +76,7 @@ on the identity by descent matrix with chip loci.
 function F0I(xy, lmp, ped)
     lg = repeat(ped.grt .== ped.grt[end], inner = 2)
     hap = XY.mapit(xy)
-    lhp = hap[lmp.chip, lg]
-    #mean(diag(irm(lhp))) - 1
-    mean(irm(lhp)) / 2
+    lhp = view(hap, lmp.chip, lg) #hap[lmp.chip, lg]
+    T = irm(lhp)
+    meanoffd(T)
 end

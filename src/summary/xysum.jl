@@ -77,7 +77,17 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
         :iF => mean => :fibd,
         :aF => mean => :fped,
     )
+    # Mean relationship using A matrix
+    grt = sort(unique(ped.grt))
+    aF = Float64[]
+    for i in grt
+        rg = ped.grt .== i
+        push!(aF, mean(A[rg, rg] - I)/2)
+    end
+    ss.aF = aF
     insertcols!(ss, 1, :repeat => rpt, :scheme => scheme)
+    # Mean IBD relationship
+
     ng = size(frq, 2)
     xqtl = zeros(Int, ng)  # number of QTL fixed
     xchip = zeros(Int, ng) # number of chip loci fixed
