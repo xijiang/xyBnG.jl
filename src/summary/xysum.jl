@@ -57,7 +57,7 @@ number and scheme are to be stored in the result DataFrame.
 """
 function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     haps = XY.mapit(xy)
-    ped.iF = tibd(view(haps, lmp.chip, :))
+    #ped.iF = tibd(view(haps, lmp.chip, :))
     frq, flr, clg, vgn =
         FFCV(isodd.(haps), repeat(ped.grt, inner = 2), lmp[!, trait.name*"_a"])
     A = RS.nrm(ped)
@@ -74,8 +74,8 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
         "tbv_" * trt => var => :vtbv, # genetic variance
         "ebv_" * trt => mean => :mebv,
         ["tbv_" * trt, "ebv_" * trt] => cor => :rtbv,
-        :iF => mean => :fibd,
-        :aF => mean => :fped,
+        #:iF => mean => :fibd,
+        #:aF => mean => :fped,
     )
     # Mean relationship using A matrix
     grt = sort(unique(ped.grt))
@@ -85,6 +85,17 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
         push!(aF, mean(A[rg, rg] - I)/2)
     end
     ss.aF = aF
+    # Mean relationship using IBD
+    hg = repeat(ped.grt, inner = 2)
+    iF = Float64[]
+    for i in grt
+        rg = hg .== i
+        T = irm(view(haps, lmp.chip, rg))
+        n = sum(rg)
+        tif = (sum(T) - sum(diag(T))) / n / (n - 1)
+        push!(iF, tif)
+    end
+    ss.iF = iF
     insertcols!(ss, 1, :repeat => rpt, :scheme => scheme)
     # Mean IBD relationship
 
