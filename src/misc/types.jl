@@ -146,7 +146,7 @@ mutable struct Plan
     nma::Int
     noff::Int
     mate::Symbol
-    function Plan(npa::Int, nma::Int, noff::Int; mate = :hierarchical)
+    function Plan(npa::Int, nma::Int, noff::Int; mate = :random)
         npa > 0 || error("npa must be positive")
         nma > 0 || error("nma must be positive")
         noff > 0 || error("noff must be positive")
