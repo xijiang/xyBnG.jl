@@ -52,4 +52,60 @@ function tovcf(fxy::AbstractString, fmp::AbstractString, vcf::AbstractString)
     end
 end
 
+"""
+    togt(
+        fxy::AbstractString,
+        fmp::AbstractString,
+        fgt::AbstractString,
+        id; # id::Vector{Int}
+        snp = :chip,
+    )
+Convert the `id` and SNP class `snp` in an `XY` file to a Zooroh file in `GT`
+format, which has 5+ columns:
+
+1. chromosome name, named as `chr1`, `chr2`, etc.
+2. marker position, in bp
+3. reference allele
+4. alternative allele
+5. genotype of the first individual, and so on.
+
+Argument `snp` can be one of the following:
+
+- `:chip`: only output the chip SNPs
+- `:dark`: only output the reference SNPs
+- `:trait`: e.g., `:growth`, output the QTL for trait `growth`
+"""
+function togt(
+    fxy::AbstractString,
+    fmp::AbstractString,
+    fgt::AbstractString,
+    id; # id::Vector{Int}
+    snp = :chip,
+)
+    nlc, nhp = XY.dim(fxy)
+    lmp = deserialize(fmp)
+    nlc == nrow(lmp) || throw(ArgumentError("The number of loci in the XY file is not equal to the number of loci in the map file."))
+    cls = names(lmp)
+    hasproperty(lmp, snp) || throw(ArgumentError("The SNP class `$snp` is not found in the map file."))
+    olc = lmp[!, snp]
+
+    ph = 2id .- 1  # paternal haplotypes
+    mh = 2id       # maternal haplotypes
+
+    hps = XY.mapit(fxy)
+    hdr = XY.header(fxy)
+    gt = if hdr.u == 1
+        isodd.(view(hps, olc, ph)) + isodd.(view(hps, olc, mh))
+    else
+        view(hps, olc, ph) + view(hps, olc, mh)
+    end
+    open(fgt, "w") do io
+        df = view(lmp, olc, [:chr, :pos, :ref, :alt])
+        for i in 1:nrow(df)
+            print(io, "chr", join(df[i, :], ' '), ' ')
+            println(io, join(gt[i, :], ' '))
+        end
+    end
+end
+
 end # module xy
