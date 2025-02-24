@@ -92,14 +92,15 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     iF1, iF2, iF3, iF4 = Float64[], Float64[], Float64[], Float64[]
     for i in grt
         rg = hg .== i
-        n = sum(rg)
         T = RS.irm(view(haps, lmp.chip, rg))
-        tif = (sum(T) - sum(diag(T))) / n / (n - 1)
+        n = size(T, 1)
+        den = 2 * n * (n - 1)
+        tif = (sum(T) - sum(diag(T))) / den
         push!(iF1, tif)
         tif = mean(diag(T)) - 1
         push!(iF3, tif)
         T = RS.irm(view(haps, lmp.dark, rg))
-        tif = (sum(T) - sum(diag(T))) / n / (n - 1)
+        tif = (sum(T) - sum(diag(T))) / den
         push!(iF2, tif)
         tif = mean(diag(T)) - 1
         push!(iF4, tif)
