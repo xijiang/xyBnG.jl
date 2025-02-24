@@ -391,3 +391,39 @@ function hgocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0; ε = 1e-6)
     println()
     serialize("$test/$bar.ped", ped)
 end
+
+"""
+    gaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+Optimal contribution selection with `A` relationship matrix for EBV, `G`
+relationship matrix for constraint on `foo`.xy and `foo`.ped in directory `test`
+for `ngn` generations. SNP linkage information are in DataFrame `lmp`. The
+results are saved in `bar`.xy, `bar`.ped in directory `test`. The selection is
+on a single trait `trait` with fixed effects `fixed`, which is a column name
+vector in pedigree DataFrame. Parents are sampled according to `plan`. The
+constraint ΔF is `dF`. `F0` is the inbreeding coefficient of the `foo`
+population.
+
+This function uses the TM1997 algorithm for OCS.
+
+See also [`randbrd`](@ref), [`aaocs`](@ref), [`iiocs`](@ref), [`iiocs`](@ref),
+[`ggocs`](@ref), [`agocs`](@ref).
+"""
+function gaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
+    @info "  - Directional selection GAOCS for $ngn generations"
+    ped, xy = deserialize("$test/$foo.ped"), "$test/$bar.xy"
+    cp("$test/$foo.xy", xy, force = true)
+    for ign = 1:ngn
+        print(" $ign")
+        ids = view(ped, ped.grt .== ped.grt[end], :id)
+        phenotype!(ids, ped, trait)
+        G = nrm(ped)
+        giv = inv(G)
+        Predict!(ids, ped, fixed, giv, trait)
+        G = grm(xy, lmp.chip, lmp.frq)
+        g22 = G[ids, ids]
+        ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
+        reproduce!(ng, ped, xy, lmp, trait)
+    end
+    println()
+    serialize("$test/$bar.ped", ped)
+end

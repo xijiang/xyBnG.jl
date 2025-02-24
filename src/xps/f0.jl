@@ -8,7 +8,7 @@ Possible the fastest way to calculate the mean off-diagonals of a square matrix.
 function meanoffd(a)
     m, n = size(a)
     m == n || error("Not square")
-    (sum(a) - sum(diag(a))) / (n * (n - 1))
+    (sum(a) - sum(diag(a))) / (n * (n - 1)) / 2
 end
 
 """

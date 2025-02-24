@@ -77,28 +77,37 @@ function xysum(ped::DataFrame, xy::AbstractString, lmp::DataFrame, trait::Trait)
     )
     # Mean relationship using A matrix
     grt = sort(unique(ped.grt))
-    aF = Float64[]
+    aF1, aF2 = Float64[], Float64[]
     for i in grt
         rg = ped.grt .== i
-        push!(aF, mean(A[rg, rg] - I)/2)
+        T = view(A, rg, rg)
+        n = sum(rg)
+        push!(aF1, (sum(T) - sum(diag(T))) / n / (n - 1))
+        push!(aF2, mean(diag(T)) - 1)
     end
-    ss.aF = aF
+    ss.aF1 = aF1 # off-diagonal pedigree inbreeding
+    ss.aF2 = aF2 # diagonal pedigree inbreeding
     # Mean relationship using IBD
     hg = repeat(ped.grt, inner = 2)
-    iF = Float64[]
-    iF2 = Float64[]
+    iF1, iF2, iF3, iF4 = Float64[], Float64[], Float64[], Float64[]
     for i in grt
         rg = hg .== i
         n = sum(rg)
         T = RS.irm(view(haps, lmp.chip, rg))
         tif = (sum(T) - sum(diag(T))) / n / (n - 1)
-        push!(iF, tif)
+        push!(iF1, tif)
+        tif = mean(diag(T)) - 1
+        push!(iF3, tif)
         T = RS.irm(view(haps, lmp.dark, rg))
         tif = (sum(T) - sum(diag(T))) / n / (n - 1)
         push!(iF2, tif)
+        tif = mean(diag(T)) - 1
+        push!(iF4, tif)
     end
-    ss.iF = iF
-    ss.iF2 = iF2
+    ss.iF1 = iF1 # IBD off-diagonal chip
+    ss.iF2 = iF2 # IBD off-diagonal dark
+    ss.iF3 = iF3 # IBD diagonal chip
+    ss.iF4 = iF4 # IBD diagonal dark
     insertcols!(ss, 1, :repeat => rpt, :scheme => scheme)
     # Mean IBD relationship
 
