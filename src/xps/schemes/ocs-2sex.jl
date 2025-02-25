@@ -420,7 +420,7 @@ function gaocs(test, foo, bar, lmp, ngn, trait, fixed, plan, dF, F0)
         giv = inv(G)
         Predict!(ids, ped, fixed, giv, trait)
         G = grm(xy, lmp.chip, lmp.frq)
-        g22 = G[ids, ids]
+        g22 = G[ids, ids] + 1e-6 * I
         ng = Select(ids, plan, ped, g22, trait, dF, ign; F0 = F0)
         reproduce!(ng, ped, xy, lmp, trait)
     end
