@@ -21,7 +21,8 @@ function F0A(ped)
     #mean(diag(A)[ped.grt .== ped.grt[end]]) - 1
     lg = ped.grt .== ped.grt[end]
     T = view(A, lg, lg)
-    meanoffd(T)
+    #meanoffd(T)
+    mean(diag(T)) - 1
 end
 
 """
@@ -52,7 +53,8 @@ function F0H(xy, lmp, ped)
     id = ped.id[ped.grt .== ped.grt[end]]
     gt = hap[lmp.chip, 2id .- 1] + hap[lmp.chip, 2id]
     H = grm(gt, p = ones(size(gt, 1)) * 0.5)
-    meanoffd(H)
+    #meanoffd(H)
+    mean(diag(H)) - 1
 end
 
 """
@@ -65,7 +67,8 @@ function F0G(xy, lmp, ped)
     gt = hap[lmp.chip, 1:2:end] + hap[lmp.chip, 2:2:end]
     frq = mean(gt[:, ped.grt .== ped.grt[begin]], dims = 2) / 2
     G = grm(gt; p = vec(frq))
-    meanoffd(G)
+    #meanoffd(G)
+    mean(diag(G)) - 1
 end
 
 """
@@ -78,5 +81,6 @@ function F0I(xy, lmp, ped)
     hap = XY.mapit(xy)
     lhp = view(hap, lmp.chip, lg) #hap[lmp.chip, lg]
     T = irm(lhp)
-    meanoffd(T)
+    #meanoffd(T)
+    mean(diag(T)) - 1
 end
