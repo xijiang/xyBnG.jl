@@ -12,17 +12,16 @@ function meanoffd(a)
 end
 
 """
-    F0A(ped)
+    F0A(ped; off = false)
 Empirical pedigree based inbreeding coefficient of the last generation of
 pedigree `ped`.
 """
-function F0A(ped)
+function F0A(ped; off = false)
     A = nrm(ped)
     #mean(diag(A)[ped.grt .== ped.grt[end]]) - 1
     lg = ped.grt .== ped.grt[end]
     T = view(A, lg, lg)
-    #meanoffd(T)
-    mean(diag(T)) - 1
+    off ? meanoffd(T) : mean(diag(T)) - 1
 end
 
 """
@@ -44,43 +43,40 @@ function F0H2(xy, lmp, ped)
 end
 
 """
-    F0H(xy, lmp, ped)
+    F0H(xy, lmp, ped; off = false)
 Empirical inbreeding coefficient of the last generation of pedigree `ped` based
 on the genomic relationship matrix with q0 .= 0.5 and with chip loci.
 """
-function F0H(xy, lmp, ped)
+function F0H(xy, lmp, ped; off = false)
     hap = Int8.(isodd.(XY.mapit(xy)))
     id = ped.id[ped.grt .== ped.grt[end]]
     gt = hap[lmp.chip, 2id .- 1] + hap[lmp.chip, 2id]
     H = grm(gt, p = ones(size(gt, 1)) * 0.5)
-    #meanoffd(H)
-    mean(diag(H)) - 1
+    off ? meanoffd(H) : mean(diag(H)) - 1
 end
 
 """
-    F0G(xy, lmp, ped)
+    F0G(xy, lmp, ped; off = false)
 Empirical inbreeding coefficient of the last generation of pedigree `ped` based
 on the genomic relationship matrix with chip loci.
 """
-function F0G(xy, lmp, ped)
+function F0G(xy, lmp, ped; off = false)
     hap = Int8.(isodd.(XY.mapit(xy)))
     gt = hap[lmp.chip, 1:2:end] + hap[lmp.chip, 2:2:end]
     frq = mean(gt[:, ped.grt .== ped.grt[begin]], dims = 2) / 2
     G = grm(gt; p = vec(frq))
-    #meanoffd(G)
-    mean(diag(G)) - 1
+    off ? meanoffd(G) : mean(diag(G)) - 1
 end
 
 """
-    F0I(xy, lmp, ped)
+    F0I(xy, lmp, ped; off = false)
 Empirical inbreeding coefficient of the last generation of pedigree `ped` based
 on the identity by descent matrix with chip loci.
 """
-function F0I(xy, lmp, ped)
+function F0I(xy, lmp, ped; off = false)
     lg = repeat(ped.grt .== ped.grt[end], inner = 2)
     hap = XY.mapit(xy)
     lhp = view(hap, lmp.chip, lg) #hap[lmp.chip, lg]
     T = irm(lhp)
-    #meanoffd(T)
-    mean(diag(T)) - 1
+    off ? meanoffd(T) : mean(diag(T)) - 1
 end

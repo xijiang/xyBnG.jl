@@ -54,7 +54,7 @@ function crossovers(lms)
     for (_, λ, nlc, bgn) in eachrow(lms)
         bgn > 1 && rand(false:true) && push!(pts, bgn)
         nc = rand(Poisson(λ))
-        append!(pts, rand(1:nlc, nc) .+ (bgn - 1))
+        append!(pts, sort(rand(1:nlc, nc) .+ (bgn - 1)))
     end
     push!(pts, last(lms).nlc - 1 + last(lms.bgn))
     pts
